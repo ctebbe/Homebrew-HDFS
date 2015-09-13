@@ -7,19 +7,25 @@ import java.io.*;
 /**
  * Created by ct
  */
-public class StoreRequest {
-    private Header header;
+public class StoreFileRequest implements Event {
 
-    public StoreRequest(int protocol, NodeConnection connection) {
+    private Header header;
+    private int size;
+
+    public StoreFileRequest(int protocol, NodeConnection connection, int size) {
         header = new Header(protocol, connection);
+        this.size = size;
     }
 
-    public StoreRequest(byte[] marshalledBytes) throws IOException {
+    public StoreFileRequest(byte[] marshalledBytes) throws IOException {
         ByteArrayInputStream bais = new ByteArrayInputStream(marshalledBytes);
         DataInputStream din = new DataInputStream(new BufferedInputStream(bais));
 
         // header
         this.header = Header.parseHeader(din);
+
+        // file size
+        this.size = din.readInt();
 
         bais.close();
         din.close();
@@ -33,6 +39,9 @@ public class StoreRequest {
         // header
         byte[] headerBytes = header.getBytes();
         dout.write(headerBytes);
+
+        // file size
+        dout.writeInt(size);
 
         // clean up
         dout.flush();
@@ -48,5 +57,9 @@ public class StoreRequest {
 
     public String getSenderKey() {
         return this.header.getSenderKey();
+    }
+
+    public int getFileSizeKB() {
+        return this.size / 1024; // file size in bytes
     }
 }

@@ -18,6 +18,10 @@ public class EventFactory {
         return new Register(Protocol.REGISTER, connection);
     }
 
+    public static Event buildStoreFileRequestEvent(NodeConnection connection, int file_size) throws IOException {
+        return new StoreFileRequest(Protocol.STORE_FILE_REQ, connection, file_size);
+    }
+
     public static Event buildEvent(byte[] marshalledBytes) throws IOException {
         try {
             ByteArrayInputStream bais = new ByteArrayInputStream(marshalledBytes);
@@ -26,6 +30,8 @@ public class EventFactory {
             switch(din.readInt()) { // read protocol type byte
                 case Protocol.REGISTER:
                     return new Register(marshalledBytes);
+                case Protocol.STORE_FILE_REQ:
+                    return new StoreFileRequest(marshalledBytes);
                 default: return null;
             }
         } catch(IOException ioe) { 

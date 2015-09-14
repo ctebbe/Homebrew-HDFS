@@ -18,8 +18,14 @@ public class EventFactory {
         return new Register(Protocol.REGISTER, connection);
     }
 
+    // STORE FILE REQ
     public static Event buildStoreFileRequestEvent(NodeConnection connection, int file_size) throws IOException {
         return new StoreFileRequest(Protocol.STORE_FILE_REQ, connection, file_size);
+    }
+
+    // STORE FILE ROUTE
+    public static Event buildStoreFileRouteEvent(NodeConnection connection, ChunkRoute[] chunkRoutes) throws IOException {
+        return new StoreFileRoute(Protocol.STORE_FILE_ROUTE, connection, chunkRoutes);
     }
 
     public static Event buildEvent(byte[] marshalledBytes) throws IOException {
@@ -32,6 +38,8 @@ public class EventFactory {
                     return new Register(marshalledBytes);
                 case Protocol.STORE_FILE_REQ:
                     return new StoreFileRequest(marshalledBytes);
+                case Protocol.STORE_FILE_ROUTE:
+                    return new StoreFileRoute(marshalledBytes);
                 default: return null;
             }
         } catch(IOException ioe) { 

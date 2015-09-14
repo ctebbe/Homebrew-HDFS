@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class ControllerNode implements Node {
 
+
     private TCPServerThread serverThread = null;                            // listens for incoming connections
     private ConcurrentHashMap<String, NodeConnection> bufferMap    = null;  // buffers incoming unregistered connections
     private ConcurrentHashMap<String, NodeConnection> chunkNodeMap = null;  // holds registered chunk nodes
@@ -34,17 +35,24 @@ public class ControllerNode implements Node {
                 registerChunkNode((Register) event);
                 break;
             case Protocol.STORE_FILE_REQ:
-                processStoreFileRequest((StoreFileRequest) event);
+                try {
+                    processStoreFileRequest((StoreFileRequest) event);
+                } catch (IOException e) {
+                    display("Error sending File Store Route Event");
+                    e.printStackTrace();
+                }
                 break;
             default:
                 display("unknown event type.");
         }
     }
 
-    private synchronized void processStoreFileRequest(StoreFileRequest event) {
+    private synchronized void processStoreFileRequest(StoreFileRequest event) throws IOException {
         int fSizeKB = event.getFileSizeKB();
-        int numChunks = (int) Math.ceil(fSizeKB/3.0);
-        chunkTracker.processStoreFileRequest(event.getSenderKey(), numChunks);
+        int numChunks = (int) Math.ceil(fSizeKB/Protocol.CHUNK_SIZE_KB);
+        Event routeEvent = EventFactory.buildStoreFileRouteEvent(
+                bufferMap.get(event.getSenderKey()), chunkTracker.allocateChunks(numChunks));
+        bufferMap.get(event.getSenderKey()).sendEvent(routeEvent);
     }
 
     private synchronized void registerChunkNode(Register event) {

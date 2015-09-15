@@ -3,7 +3,6 @@ package cs555.tebbe.util;
 import cs555.tebbe.transport.NodeConnection;
 import cs555.tebbe.wireformats.ChunkRoute;
 import cs555.tebbe.wireformats.Protocol;
-import cs555.tebbe.wireformats.StoreFileRoute;
 
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
@@ -24,12 +23,12 @@ public class ChunkTracker {
     public ChunkRoute[] allocateChunks(int numChunksNeeded) {
         ChunkRoute[] chunkRoutes = new ChunkRoute[numChunksNeeded];
         for(int i=0; i < chunkRoutes.length; i++) {
-            chunkRoutes[i] = generateChunkRoute(Protocol.NUM_REPLICAS_PER_CHUNK);
+            chunkRoutes[i] = getLeastCapacityChunkNodes(Protocol.NUM_REPLICAS_PER_CHUNK);
         }
         return chunkRoutes;
     }
 
-    private ChunkRoute generateChunkRoute(int numReplicas) {
+    private ChunkRoute getLeastCapacityChunkNodes(int numChunkNodesNeeded) {
         synchronized (allocatedChunkMap) {
         }
     }

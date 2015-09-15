@@ -19,8 +19,8 @@ public class EventFactory {
     }
 
     // STORE FILE REQ
-    public static Event buildStoreFileRequestEvent(NodeConnection connection, int file_size) throws IOException {
-        return new StoreFileRequest(Protocol.STORE_FILE_REQ, connection, file_size);
+    public static Event buildStoreFileRequestEvent(NodeConnection connection, String file_name, int file_size) throws IOException {
+        return new StoreFileRequest(Protocol.STORE_FILE_REQ, connection, file_name, file_size);
     }
 
     // STORE FILE ROUTE

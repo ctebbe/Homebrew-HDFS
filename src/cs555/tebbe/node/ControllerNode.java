@@ -12,7 +12,7 @@ public class ControllerNode implements Node {
 
     private TCPServerThread serverThread = null;                            // listens for incoming connections
     private ConcurrentHashMap<String, NodeConnection> bufferMap    = null;  // buffers incoming unregistered connections
-    private ConcurrentHashMap<String, NodeConnection> chunkNodeMap = null;  // holds registered chunk nodes
+    private ConcurrentHashMap<String, ChunkInfo> chunkNodeMap = null;       // holds registered chunk nodes
     private ChunkTracker chunkTracker = null;                               // manage chunk distribution information
 
     public ControllerNode(int port) {
@@ -48,16 +48,14 @@ public class ControllerNode implements Node {
     }
 
     private synchronized void processStoreFileRequest(StoreFileRequest event) throws IOException {
-        int fSizeKB = event.getFileSizeKB();
-        int numChunks = (int) Math.ceil(fSizeKB/Protocol.CHUNK_SIZE_KB);
-        Event routeEvent = EventFactory.buildStoreFileRouteEvent(
-                bufferMap.get(event.getSenderKey()), chunkTracker.allocateChunks(numChunks));
+        Event routeEvent = EventFactory.buildStoreFileRouteEvent(bufferMap.get(event.getSenderKey()),
+                chunkTracker.allocateChunks(event));
         bufferMap.get(event.getSenderKey()).sendEvent(routeEvent);
     }
 
     private synchronized void registerChunkNode(Register event) {
         String key = event.getSenderKey();
-        chunkNodeMap.put(key, bufferMap.remove(key));
+        chunkNodeMap.put(key, new ChunkInfo(bufferMap.get(key)));
     }
 
     public synchronized void registerConnection(NodeConnection connection) {

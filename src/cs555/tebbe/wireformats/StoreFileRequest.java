@@ -10,10 +10,12 @@ import java.io.*;
 public class StoreFileRequest implements Event {
 
     private Header header;
+    private String fName;
     private int size;
 
-    public StoreFileRequest(int protocol, NodeConnection connection, int size) {
+    public StoreFileRequest(int protocol, NodeConnection connection, String filename, int size) {
         header = new Header(protocol, connection);
+        this.fName = filename;
         this.size = size;
     }
 
@@ -23,6 +25,12 @@ public class StoreFileRequest implements Event {
 
         // header
         this.header = Header.parseHeader(din);
+
+        // file name
+        int nameLen = din.readInt();
+        byte[] nameBytes = new byte[nameLen];
+        din.readFully(nameBytes);
+        this.fName = new String(nameBytes);
 
         // file size
         this.size = din.readInt();
@@ -39,6 +47,11 @@ public class StoreFileRequest implements Event {
         // header
         byte[] headerBytes = header.getBytes();
         dout.write(headerBytes);
+
+        // file name
+        byte[] nameBytes = fName.getBytes();
+        dout.writeInt(nameBytes.length);
+        dout.write(nameBytes);
 
         // file size
         dout.writeInt(size);
@@ -57,6 +70,10 @@ public class StoreFileRequest implements Event {
 
     public String getSenderKey() {
         return this.header.getSenderKey();
+    }
+
+    public String getFileName() {
+        return this.fName;
     }
 
     public int getFileSizeKB() {

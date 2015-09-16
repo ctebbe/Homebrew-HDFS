@@ -27,22 +27,22 @@ public class ChunkTracker {
         and their replicas among active chunk nodes
      */
     public ChunkReplicaInformation[] allocateChunks(StoreFileRequest reqEvent) {
+        System.out.println("Allocating chunks...");
         int fSizeKB = reqEvent.getFileSizeKB();
         int numChunksToAllocate = getNumChunksToAllocate(fSizeKB);
 
-        List<ChunkInfo> chunkInfos = new ArrayList<>(chunkNodeMap.values()); // a snapshot of the current connections
-
         ChunkReplicaInformation[] chunkReplicas = new ChunkReplicaInformation[numChunksToAllocate];
         for(int i=0; i < chunkReplicas.length; i++)
-            chunkReplicas[i] = generateUniqueChunkRoute(reqEvent.getFileName(), chunkInfos);
+            chunkReplicas[i] = generateUniqueChunkRoute();
         fileTrackerMap.put(reqEvent.getFileName(), chunkReplicas);
 
         System.out.println();
         System.out.println("File store request");
         System.out.println("File size KB:" + fSizeKB);
         System.out.println("Replicas assigned:");
+        System.out.println("File name: " + reqEvent.getFileName());
         for(ChunkReplicaInformation info : chunkReplicas) {
-            System.out.println(info.getChunkName());
+            System.out.println("-- new Chunk");
             for(String s : info.getReplicaChunkNodes()) {
                 System.out.println("\t" + s);
             }
@@ -58,16 +58,31 @@ public class ChunkTracker {
     /*
         creates a chunk route with unique machines to disperse replicas
      */
-    private ChunkReplicaInformation generateUniqueChunkRoute(String fileName, List<ChunkInfo> nodeInfos) {
-        Collections.sort(nodeInfos, new Comparator<ChunkInfo>() {
-            @Override public int compare(ChunkInfo o1, ChunkInfo o2) {
-                return new Integer(o1.getChunks()).compareTo(new Integer(o2.getChunks()));
-            }
-        });
+    private ChunkReplicaInformation generateUniqueChunkRoute() {
+        List<ChunkInfo> nodeInfos = new ArrayList<>(chunkNodeMap.values()); // a snapshot of the current connections
+        boolean allSame = false;
+        int compareNum = nodeInfos.get(0).getChunks();
+        for(ChunkInfo info : nodeInfos) {
+            allSame = compareNum == info.getChunks() ? true : false;
+            if(!allSame) break;
+        }
+
+        if(allSame)
+            Collections.shuffle(nodeInfos); // if chunks are equally distributed, randomly assign replicas
+        else
+            Collections.sort(nodeInfos, new Comparator<ChunkInfo>() {
+                @Override
+                public int compare(ChunkInfo o1, ChunkInfo o2) {
+                    return new Integer(o1.getChunks()).compareTo(o2.getChunks());
+                }
+            });
 
         List<String> replicaList = new ArrayList<>();
-        for(int i=0; i < Protocol.NUM_REPLICAS_PER_CHUNK; i++)
-            replicaList.add(nodeInfos.get(i).getNodeKey());
-        return new ChunkReplicaInformation(fileName, replicaList.toArray(new String[]{}));
+        for(int i=0; i < Protocol.NUM_REPLICAS_PER_CHUNK; i++) {
+            String nodeKey = nodeInfos.get(i).getNodeKey();
+            chunkNodeMap.get(nodeKey).incrementChunks(1);
+            replicaList.add(Util.removePort(nodeKey));
+        }
+        return new ChunkReplicaInformation(replicaList.toArray(new String[]{}));
     }
 }

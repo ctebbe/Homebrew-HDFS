@@ -7,30 +7,21 @@ import java.io.*;
  */
 public class ChunkReplicaInformation implements Event {
 
-    private final String chunkName;
     private final String[] replicaChunkNodes;
 
-    public ChunkReplicaInformation(String id, String[] replicas) {
-        this.chunkName = id;
+    public ChunkReplicaInformation(String[] replicas) {
         this.replicaChunkNodes = replicas;
     }
 
-    public static ChunkReplicaInformation parseChunkRoute(DataInputStream din) throws IOException {
-        // chunk name
-        int nameLen = din.readInt();
-        byte[] receiverBytes = new byte[nameLen];
-        din.readFully(receiverBytes);
-        String chunkName = new String(receiverBytes);
-
+    public static ChunkReplicaInformation parseChunkReplicaInformation(DataInputStream din) throws IOException {
         // replicas
         String[] replicas = new String[din.readInt()];
         for(int i=0; i < replicas.length; i++) {
             byte[] replicaBytes = new byte[din.readInt()];
             din.readFully(replicaBytes);
-            replicas[i] = new String(receiverBytes);
+            replicas[i] = new String(replicaBytes);
         }
-
-        return new ChunkReplicaInformation(chunkName, replicas);
+        return new ChunkReplicaInformation(replicas);
     }
 
     @Override
@@ -38,11 +29,6 @@ public class ChunkReplicaInformation implements Event {
         byte[] marshalledBytes = null;
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputStream dout = new DataOutputStream(new BufferedOutputStream(baos));
-
-        // chunk name
-        byte[] nameBytes = chunkName.getBytes();
-        dout.writeInt(nameBytes.length);
-        dout.write(nameBytes);
 
         // replicas
         dout.writeInt(replicaChunkNodes.length);
@@ -60,10 +46,6 @@ public class ChunkReplicaInformation implements Event {
         return marshalledBytes;
     }
 
-    public String getChunkName() {
-        return chunkName;
-    }
-
     public String[] getReplicaChunkNodes() {
         return replicaChunkNodes;
     }
@@ -71,5 +53,12 @@ public class ChunkReplicaInformation implements Event {
     @Override
     public int getType() {
         return Protocol.NOTYPE;
+    }
+
+    @Override public String toString() {
+        StringBuilder sb = new StringBuilder();
+        for(String str : replicaChunkNodes)
+            sb.append("\t" + str + "\n");
+        return sb.toString();
     }
 }

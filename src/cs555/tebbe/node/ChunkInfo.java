@@ -25,8 +25,8 @@ public class ChunkInfo {
         numChunks.addAndGet(numAdded);
     }
 
-    public void decrementChunks(int numRemoved) {
-        incrementChunks(-numRemoved);
+    public void setNumChunks(int chunks) {
+        numChunks.getAndSet(chunks);
     }
 
     public int getChunks() {

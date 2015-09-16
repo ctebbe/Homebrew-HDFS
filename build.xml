@@ -7,6 +7,7 @@
 
     <property name="controller.node" value="ControllerNode"/>
     <property name="chunk.node" value="ChunkNode"/>
+    <property name="client.node" value="ClientNode"/>
     <property name="package" value="cs555.tebbe.node"/>
 
     <target name="clean">
@@ -47,6 +48,14 @@
 
     <target name="node_args" depends="jar">
         <java classname="${package}.${chunk.node}" fork="true">
+            <classpath path="${dist}\${ant.project.name}.jar" />
+            <arg value="${arg0}"/>
+            <arg value="${arg1}"/>
+        </java>
+    </target>
+
+    <target name="client" depends="jar">
+        <java classname="${package}.${client.node}" fork="true">
             <classpath path="${dist}\${ant.project.name}.jar" />
             <arg value="${arg0}"/>
             <arg value="${arg1}"/>

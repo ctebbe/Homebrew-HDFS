@@ -49,12 +49,13 @@ public class ControllerNode implements Node {
 
     private synchronized void processStoreFileRequest(StoreFileRequest event) throws IOException {
         Event routeEvent = EventFactory.buildChunkRouteEvent(bufferMap.get(event.getSenderKey()),
-                chunkTracker.allocateChunks(event));
+                event.getFileName(), chunkTracker.allocateChunks(event));
         bufferMap.get(event.getSenderKey()).sendEvent(routeEvent);
     }
 
     private synchronized void registerChunkNode(Register event) {
         String key = event.getSenderKey();
+        System.out.println("Registering Chunk Node: " + key);
         chunkNodeMap.put(key, new ChunkInfo(bufferMap.get(key)));
     }
 

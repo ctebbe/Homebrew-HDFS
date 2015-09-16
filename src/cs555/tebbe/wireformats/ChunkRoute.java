@@ -10,10 +10,12 @@ import java.io.*;
 public class ChunkRoute implements Event {
 
     private Header header;
+    private String fileName;
     private ChunkReplicaInformation[] chunks;
 
-    public ChunkRoute(int protocol, NodeConnection connection, ChunkReplicaInformation[] chunks) {
+    public ChunkRoute(int protocol, NodeConnection connection, String filename, ChunkReplicaInformation[] chunks) {
         header = new Header(protocol, connection);
+        this.fileName = filename;
         this.chunks = chunks;
     }
 
@@ -24,10 +26,17 @@ public class ChunkRoute implements Event {
         // header
         this.header = Header.parseHeader(din);
 
+
+        // chunk name
+        int nameLen = din.readInt();
+        byte[] receiverBytes = new byte[nameLen];
+        din.readFully(receiverBytes);
+        fileName = new String(receiverBytes);
+
         // chunk routes
         chunks = new ChunkReplicaInformation[din.readInt()];
         for(int i=0; i < chunks.length; i++) {
-            chunks[i] = ChunkReplicaInformation.parseChunkRoute(din);
+            chunks[i] = ChunkReplicaInformation.parseChunkReplicaInformation(din);
         }
 
         bais.close();
@@ -43,6 +52,11 @@ public class ChunkRoute implements Event {
         // header
         byte[] headerBytes = header.getBytes();
         dout.write(headerBytes);
+
+        // chunk name
+        byte[] nameBytes = fileName.getBytes();
+        dout.writeInt(nameBytes.length);
+        dout.write(nameBytes);
 
         // chunk routes
         dout.writeInt(chunks.length);
@@ -65,5 +79,9 @@ public class ChunkRoute implements Event {
     @Override
     public int getType() {
         return this.header.getType();
+    }
+
+    public String getFileName() {
+        return fileName;
     }
 }

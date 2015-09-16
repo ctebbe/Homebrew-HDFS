@@ -23,10 +23,10 @@ public class Util {
 
 
     // strips away the IP in the key format
-    public static String stripIP(String key) {
+    public static String removePort(String key) {
         return key.substring(0, key.indexOf(":"));
     }
-    public static int stripPort(String key) {
+    public static int removeIPAddress(String key) {
         return Integer.parseInt(key.substring(key.indexOf(":")+1));
     }
 

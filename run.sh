@@ -14,5 +14,10 @@ while read CHUNKSERVER
 do
     echo 'sshing into '${CHUNKSERVER}
     gnome-terminal -x bash -c "ssh -t ${CHUNKSERVER} 'cd '~/workspace/cs555/A01'; echo $CHUNKSERVER;
-    ant -Darg0=${HOST} -Darg1=${PORT} node_args; bash'" #&
+    ant -Darg0=${HOST} -Darg1=${PORT} node_args; echo ${CHUNKSERVER} > out.${CHUNKSERVER}; bash'" #&
 done < chunknodes
+
+
+# client startup
+gnome-terminal -x bash -c "ssh -t cheyenne 'cd '~/workspace/cs555/A01'; echo $(hostname);
+ant -Darg0=${HOST} -Darg1=${PORT} client; bash'" #&

@@ -5,11 +5,27 @@ public class Protocol {
     public static final double CHUNK_SIZE_KB = 64.0;
     public static final int NUM_REPLICAS_PER_CHUNK = 3;
 
-    // message types
+    // event types
     public static final int NOTYPE                  = -101;
     public static final int REGISTER                = 100;
-    public static final int STORE_FILE_REQ          = 101;
-    public static final int STORE_FILE_ROUTE        = 102;
+
+    // routing
+    public static final int CHUNK_ROUTE             = 102;
+
+    // store
+    public static final int STORE_FILE_REQ          = 103;
+    public static final int STORE_CHUNK             = 104;
+
+    // read
+    public static final int READ_FILE_REQ           = 105;
+    public static final int CHUNK_REQ               = 106;
+
+    // error detection
+    public static final int CORRUPT_CHUNK_REQ       = 107;
+
+    // heartbeats
+    public static final int MAJOR_HEARTBEAT         = 108;
+    public static final int MINOR_HEARTBEAT         = 109;
 
     // status codes
     public static final byte NOSTATUS               = (byte) 0x00;

@@ -48,7 +48,7 @@ public class ControllerNode implements Node {
     }
 
     private synchronized void processStoreFileRequest(StoreFileRequest event) throws IOException {
-        Event routeEvent = EventFactory.buildStoreFileRouteEvent(bufferMap.get(event.getSenderKey()),
+        Event routeEvent = EventFactory.buildChunkRouteEvent(bufferMap.get(event.getSenderKey()),
                 chunkTracker.allocateChunks(event));
         bufferMap.get(event.getSenderKey()).sendEvent(routeEvent);
     }

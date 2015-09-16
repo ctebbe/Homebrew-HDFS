@@ -53,6 +53,8 @@ public class TCPReceiverThread extends Thread {
         try {
             dInputStream.close();
             socket.close();
-        } catch(IOException ioe) {}
+        } catch(IOException ioe) {
+            System.out.println("Closing connection:" + ioe.getMessage());
+        }
     }
 }

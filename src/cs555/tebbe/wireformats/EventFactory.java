@@ -1,9 +1,8 @@
 package cs555.tebbe.wireformats;
 import cs555.tebbe.transport.*;
-import cs555.tebbe.node.*;
-import java.util.*;
+
 import java.io.*;
-import java.net.*;
+
 public class EventFactory {
 
     protected EventFactory() {}
@@ -24,8 +23,8 @@ public class EventFactory {
     }
 
     // STORE FILE ROUTE
-    public static Event buildStoreFileRouteEvent(NodeConnection connection, ChunkRoute[] chunkRoutes) throws IOException {
-        return new StoreFileRoute(Protocol.STORE_FILE_ROUTE, connection, chunkRoutes);
+    public static Event buildChunkRouteEvent(NodeConnection connection, ChunkReplicaInformation[] chunkReplicases) throws IOException {
+        return new ChunkRoute(Protocol.CHUNK_ROUTE, connection, chunkReplicases);
     }
 
     public static Event buildEvent(byte[] marshalledBytes) throws IOException {
@@ -38,8 +37,8 @@ public class EventFactory {
                     return new Register(marshalledBytes);
                 case Protocol.STORE_FILE_REQ:
                     return new StoreFileRequest(marshalledBytes);
-                case Protocol.STORE_FILE_ROUTE:
-                    return new StoreFileRoute(marshalledBytes);
+                case Protocol.CHUNK_ROUTE:
+                    return new ChunkRoute(marshalledBytes);
                 default: return null;
             }
         } catch(IOException ioe) { 

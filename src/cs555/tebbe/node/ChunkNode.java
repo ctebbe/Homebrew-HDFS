@@ -31,7 +31,18 @@ public class ChunkNode implements Node {
         }
     }
 
-    public void onEvent(Event event){}
+    public synchronized void onEvent(Event event){
+        switch(event.getType()) {
+            case Protocol.STORE_CHUNK:
+                processStoreChunk((StoreChunk) event);
+
+        }
+    }
+
+    private void processStoreChunk(StoreChunk event) {
+        String chunkName = event.getChunkReplicaInformation().getChunkName() + "_" + event.getChunkID();
+    }
+
     public void registerConnection(NodeConnection connection){}
 
     public static void main(String args[]) {

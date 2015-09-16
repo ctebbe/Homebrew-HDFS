@@ -1,5 +1,7 @@
 package cs555.tebbe.wireformats;
 
+import cs555.tebbe.transport.NodeConnection;
+
 import java.io.*;
 
 /**
@@ -7,30 +9,29 @@ import java.io.*;
  */
 public class ChunkRoute implements Event {
 
-    private final String chunkName;
-    private final String[] replicaChunkNodes;
+    private Header header;
+    private ChunkReplicaInformation[] chunks;
 
-    public ChunkRoute(String id, String[] replicas) {
-        this.chunkName = id;
-        this.replicaChunkNodes = replicas;
+    public ChunkRoute(int protocol, NodeConnection connection, ChunkReplicaInformation[] chunks) {
+        header = new Header(protocol, connection);
+        this.chunks = chunks;
     }
 
-    public static ChunkRoute parseChunkRoute(DataInputStream din) throws IOException {
-        // chunk name
-        int nameLen = din.readInt();
-        byte[] receiverBytes = new byte[nameLen];
-        din.readFully(receiverBytes);
-        String chunkName = new String(receiverBytes);
+    public ChunkRoute(byte[] marshalledBytes) throws IOException {
+        ByteArrayInputStream bais = new ByteArrayInputStream(marshalledBytes);
+        DataInputStream din = new DataInputStream(new BufferedInputStream(bais));
 
-        // replicas
-        String[] replicas = new String[din.readInt()];
-        for(int i=0; i < replicas.length; i++) {
-            byte[] replicaBytes = new byte[din.readInt()];
-            din.readFully(replicaBytes);
-            replicas[i] = new String(receiverBytes);
+        // header
+        this.header = Header.parseHeader(din);
+
+        // chunk routes
+        chunks = new ChunkReplicaInformation[din.readInt()];
+        for(int i=0; i < chunks.length; i++) {
+            chunks[i] = ChunkReplicaInformation.parseChunkRoute(din);
         }
 
-        return new ChunkRoute(chunkName, replicas);
+        bais.close();
+        din.close();
     }
 
     @Override
@@ -39,17 +40,14 @@ public class ChunkRoute implements Event {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputStream dout = new DataOutputStream(new BufferedOutputStream(baos));
 
-        // chunk name
-        byte[] nameBytes = chunkName.getBytes();
-        dout.writeInt(nameBytes.length);
-        dout.write(nameBytes);
+        // header
+        byte[] headerBytes = header.getBytes();
+        dout.write(headerBytes);
 
-        // replicas
-        dout.writeInt(replicaChunkNodes.length);
-        for(String replicaNode : replicaChunkNodes) {
-            byte[] replicaBytes = replicaNode.getBytes();
-            dout.writeInt(replicaBytes.length);
-            dout.write(replicaBytes);
+        // chunk routes
+        dout.writeInt(chunks.length);
+        for(ChunkReplicaInformation route : chunks) {
+            dout.write(route.getBytes());
         }
 
         // clean up
@@ -60,8 +58,12 @@ public class ChunkRoute implements Event {
         return marshalledBytes;
     }
 
+    public ChunkReplicaInformation[] getChunksInformation() {
+        return chunks;
+    }
+
     @Override
     public int getType() {
-        return 0;
+        return this.header.getType();
     }
 }

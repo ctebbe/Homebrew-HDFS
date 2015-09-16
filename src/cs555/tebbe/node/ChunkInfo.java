@@ -9,12 +9,16 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class ChunkInfo {
 
-    public static NodeConnection connection;
-    private static AtomicInteger numChunks;
+    public final NodeConnection connection;
+    private final AtomicInteger numChunks;
 
     public ChunkInfo(NodeConnection connection) {
         this.connection = connection;
         this.numChunks = new AtomicInteger(0);
+    }
+
+    public String getNodeKey() {
+        return connection.getRemoteKey();
     }
 
     public void incrementChunks(int numAdded) {

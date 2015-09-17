@@ -42,9 +42,24 @@ public class ControllerNode implements Node {
                     e.printStackTrace();
                 }
                 break;
+            case Protocol.MINOR_HEARTBEAT:
+                processMinorHeartbeat((Heartbeat) event);
+                break;
+            case Protocol.MAJOR_HEARTBEAT:
+                processMajorHeartbeat((Heartbeat) event);
+                break;
             default:
                 display("unknown event type.");
         }
+    }
+
+    private void processMajorHeartbeat(Heartbeat event) {
+
+    }
+
+    private void processMinorHeartbeat(Heartbeat event) {
+        System.out.println("minor heartbeat from:" + event.getHeader().getSenderKey());
+        System.out.println("new records:" + event.getRecords().length);
     }
 
     private synchronized void processStoreFileRequest(StoreFileRequest event) throws IOException {

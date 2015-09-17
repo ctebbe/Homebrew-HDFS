@@ -1,4 +1,5 @@
 package cs555.tebbe.wireformats;
+import cs555.tebbe.node.ChunkStorage;
 import cs555.tebbe.transport.*;
 
 import java.io.*;
@@ -32,6 +33,16 @@ public class EventFactory {
         return new StoreChunk(Protocol.STORE_CHUNK, connection, name, chunk_sequence, bytes, replicaInformation);
     }
 
+    // MAJOR HEARTBEAT
+    public static Event buildMajorHeartbeat(NodeConnection connection, ChunkStorage[] records) throws IOException {
+        return new Heartbeat(Protocol.MAJOR_HEARTBEAT, connection, records);
+    }
+
+    // MINOR HEARTBEAT
+    public static Event buildMinorHeartbeat(NodeConnection connection, ChunkStorage[] records) throws IOException {
+        return new Heartbeat(Protocol.MINOR_HEARTBEAT, connection, records);
+    }
+
     public static Event buildEvent(byte[] marshalledBytes) throws IOException {
         try {
             ByteArrayInputStream bais = new ByteArrayInputStream(marshalledBytes);
@@ -45,8 +56,11 @@ public class EventFactory {
                 case Protocol.CHUNK_ROUTE:
                     return new ChunkRoute(marshalledBytes);
                 case Protocol.STORE_CHUNK:
-                    System.out.println("rec store chunk event type");
                     return new StoreChunk(marshalledBytes);
+                case Protocol.MAJOR_HEARTBEAT:
+                    return new Heartbeat(marshalledBytes);
+                case Protocol.MINOR_HEARTBEAT:
+                    return new Heartbeat(marshalledBytes);
                 default: return null;
             }
         } catch(IOException ioe) { 

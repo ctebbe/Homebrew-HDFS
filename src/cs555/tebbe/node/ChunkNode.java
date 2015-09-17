@@ -102,11 +102,16 @@ public class ChunkNode implements Node {
         private AtomicInteger numHeartbeats = new AtomicInteger(0);
 
         @Override public void run() {
-            if(numHeartbeats.getAndIncrement() % ratioMinorToMajor == 0) {
+            if(numHeartbeats.incrementAndGet() % ratioMinorToMajor == 0) {
+                try {
+                    _Controller.sendEvent(EventFactory.buildMajorHeartbeat(_Controller, storedChunksMap.values().toArray(new ChunkStorage[]{})));
+                } catch (IOException e) { System.out.println("Error sending major heartbeat"); }
                 System.out.println("major heartbeat");
             } else
+                try {
+                    _Controller.sendEvent(EventFactory.buildMinorHeartbeat(_Controller, storedChunksMap.values().toArray(new ChunkStorage[]{})));
+                } catch (IOException e) { System.out.println("Error sending minor heartbeat"); }
                 System.out.println("minor heartbeat");
-            //_Controller.sendEvent(null);
         }
     }
 }

@@ -1,6 +1,7 @@
 package cs555.tebbe.wireformats;
 
 import cs555.tebbe.transport.NodeConnection;
+import cs555.tebbe.util.Util;
 
 import java.io.*;
 
@@ -88,7 +89,11 @@ public class StoreChunk implements Event {
     }
 
     public String getNextHost() {
+        boolean replicaFound = false;
         for(String replica : replicaInformation.getReplicaChunkNodes()) {
+            if(replicaFound)
+                return replica;
+            replicaFound = replica.equals(Util.removePort(header.getReceiverKey()));
         }
         return null;
     }

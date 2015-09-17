@@ -7,12 +7,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Created by ctebbe
  */
-public class ChunkInfo {
+public class ChunkNodeAllocationInfo {
 
     public final NodeConnection connection;
     private final AtomicInteger numChunks;
 
-    public ChunkInfo(NodeConnection connection) {
+    public ChunkNodeAllocationInfo(NodeConnection connection) {
         this.connection = connection;
         this.numChunks = new AtomicInteger(0);
     }

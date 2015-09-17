@@ -1,8 +1,7 @@
 package cs555.tebbe.util;
 
-import cs555.tebbe.node.ChunkInfo;
+import cs555.tebbe.node.ChunkNodeAllocationInfo;
 import cs555.tebbe.wireformats.ChunkReplicaInformation;
-import cs555.tebbe.wireformats.ChunkRoute;
 import cs555.tebbe.wireformats.Protocol;
 import cs555.tebbe.wireformats.StoreFileRequest;
 
@@ -14,10 +13,10 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class ChunkTracker {
 
-    private final ConcurrentHashMap<String, ChunkInfo> chunkNodeMap;
+    private final ConcurrentHashMap<String, ChunkNodeAllocationInfo> chunkNodeMap;
     private final ConcurrentHashMap<String, ChunkReplicaInformation[]> fileTrackerMap;
 
-    public ChunkTracker(ConcurrentHashMap<String, ChunkInfo> nodeMap) {
+    public ChunkTracker(ConcurrentHashMap<String, ChunkNodeAllocationInfo> nodeMap) {
         this.chunkNodeMap = nodeMap;
         fileTrackerMap = new ConcurrentHashMap<>();
     }
@@ -59,10 +58,10 @@ public class ChunkTracker {
         creates a chunk route with unique machines to disperse replicas
      */
     private ChunkReplicaInformation generateUniqueChunkRoute() {
-        List<ChunkInfo> nodeInfos = new ArrayList<>(chunkNodeMap.values()); // a snapshot of the current connections
+        List<ChunkNodeAllocationInfo> nodeInfos = new ArrayList<>(chunkNodeMap.values()); // a snapshot of the current connections
         boolean allSame = false;
         int compareNum = nodeInfos.get(0).getChunks();
-        for(ChunkInfo info : nodeInfos) {
+        for(ChunkNodeAllocationInfo info : nodeInfos) {
             allSame = compareNum == info.getChunks() ? true : false;
             if(!allSame) break;
         }
@@ -70,9 +69,9 @@ public class ChunkTracker {
         if(allSame)
             Collections.shuffle(nodeInfos); // if chunks are equally distributed, randomly assign replicas
         else
-            Collections.sort(nodeInfos, new Comparator<ChunkInfo>() {
+            Collections.sort(nodeInfos, new Comparator<ChunkNodeAllocationInfo>() {
                 @Override
-                public int compare(ChunkInfo o1, ChunkInfo o2) {
+                public int compare(ChunkNodeAllocationInfo o1, ChunkNodeAllocationInfo o2) {
                     return new Integer(o1.getChunks()).compareTo(o2.getChunks());
                 }
             });

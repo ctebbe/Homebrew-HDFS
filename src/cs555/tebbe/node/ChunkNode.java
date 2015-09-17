@@ -9,10 +9,11 @@ import java.util.*;
 public class ChunkNode implements Node {
 
     public static final int DEFAULT_SERVER_PORT = 18080;
+    public static final String BASE_DIR = "./";
 
     private NodeConnection _Controller = null;
     private TCPServerThread serverThread = null; // listens for incoming client nodes
-    private HashMap<String, NodeConnection> clients = new HashMap<>();
+    private HashMap<String, ChunkStorage> storedChunksMap = new HashMap<>();
 
     public ChunkNode(String host, int port) {
         try {
@@ -30,6 +31,7 @@ public class ChunkNode implements Node {
             System.out.println("IOException thrown contacting ControllerNode:"+ioe.getMessage());
             System.exit(0);
         }
+        new Timer().schedule(new MinorHeartbeat(), 0, 1000);
     }
 
     public synchronized void onEvent(Event event){
@@ -49,16 +51,35 @@ public class ChunkNode implements Node {
         System.out.println("Byte size: " + event.getBytesToStore().length);
         System.out.println("Bytes: " );
         try {
-            System.out.write(event.getBytes());
+            System.out.write(event.getBytesToStore());
         } catch (IOException e) {
             e.printStackTrace();
         }
         System.out.println();
+
+        ChunkStorage record = new ChunkStorage(event.getFileName(), "0.1", event.getChunkSequenceID(), new Date().getTime());
+        BufferedOutputStream writer = null;
+        try {
+            writer = new BufferedOutputStream(new FileOutputStream(
+                    new File(record.getChunkStorageName())));
+            saveChunk(writer, event);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (writer != null) {
+                try { writer.close(); } catch (IOException e) {}
+            }
+        }
+
+        storedChunksMap.put(record.getFileName(), record);
+    }
+
+    private void saveChunk(BufferedOutputStream writer, StoreChunk event) throws IOException {
+        writer.write(event.getBytesToStore());
     }
 
     public void registerConnection(NodeConnection connection) {
-        clients.put(connection.getRemoteKey(), connection);
-        System.out.println("New client: " + connection.getRemoteKey());
+        System.out.println("New connection: " + connection.getRemoteKey());
     }
 
     public static void main(String args[]) {
@@ -70,4 +91,10 @@ public class ChunkNode implements Node {
             System.out.println("Usage: java ChunkNode controller_host controller_port");
         }
     }
+     private class MinorHeartbeat extends TimerTask {
+         @Override
+         public void run() {
+             System.out.println("task");
+         }
+     }
 }

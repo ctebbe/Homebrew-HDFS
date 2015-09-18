@@ -12,7 +12,7 @@ public class ControllerNode implements Node {
 
     private TCPServerThread serverThread = null;                            // listens for incoming connections
     private ConcurrentHashMap<String, NodeConnection> bufferMap    = null;  // buffers incoming unregistered connections
-    private ConcurrentHashMap<String, ChunkNodeAllocationInfo> chunkNodeMap = null;       // holds registered chunk nodes
+    private ConcurrentHashMap<String, LiveChunkNodeData> chunkNodeMap = null;       // holds registered chunk nodes
     private ChunkTracker chunkTracker = null;                               // manage chunk distribution information
 
     public ControllerNode(int port) {
@@ -54,12 +54,13 @@ public class ControllerNode implements Node {
     }
 
     private void processMajorHeartbeat(Heartbeat event) {
-
+        //System.out.println("major heartbeat from:" + event.getHeader().getSenderKey());
+        chunkNodeMap.get(event.getHeader().getSenderKey()).replaceAllRecords(event.getRecords());
     }
 
     private void processMinorHeartbeat(Heartbeat event) {
-        System.out.println("minor heartbeat from:" + event.getHeader().getSenderKey());
-        System.out.println("new records:" + event.getRecords().length);
+        //System.out.println("minor heartbeat from:" + event.getHeader().getSenderKey());
+        chunkNodeMap.get(event.getHeader().getSenderKey()).appendNewRecords(event.getRecords());
     }
 
     private synchronized void processStoreFileRequest(StoreFileRequest event) throws IOException {
@@ -71,7 +72,7 @@ public class ControllerNode implements Node {
     private synchronized void registerChunkNode(Register event) {
         String key = event.getSenderKey();
         System.out.println("Registering Chunk Node: " + key);
-        chunkNodeMap.put(key, new ChunkNodeAllocationInfo(bufferMap.get(key)));
+        chunkNodeMap.put(key, new LiveChunkNodeData(bufferMap.get(key)));
     }
 
     public synchronized void registerConnection(NodeConnection connection) {

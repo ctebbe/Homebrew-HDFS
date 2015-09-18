@@ -9,12 +9,18 @@ public class ChunkStorage {
     private final String version;
     private final int sequence;
     private final Long timestamp;
+    private final Long checksum;
 
-    public ChunkStorage(String fileName, String version, int sequence, Long timestamp) {
+    public ChunkStorage(String fileName, String version, int sequence, Long timestamp, Long checksum) {
         this.fileName = fileName;
         this.version = version;
         this.sequence = sequence;
         this.timestamp = timestamp;
+        this.checksum = checksum;
+    }
+
+    public Long getChecksum() {
+        return checksum;
     }
 
     public String getChunkStorageName() {

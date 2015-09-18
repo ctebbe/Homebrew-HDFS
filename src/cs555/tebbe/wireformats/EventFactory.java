@@ -29,8 +29,13 @@ public class EventFactory {
     }
 
     // STORE CHUNK EVENT
-    public static Event buildStoreChunkEvent(NodeConnection connection, String name, int chunk_sequence, byte[] bytes, ChunkReplicaInformation replicaInformation) throws IOException {
-        return new StoreChunk(Protocol.STORE_CHUNK, connection, name, chunk_sequence, bytes, replicaInformation);
+    public static Event buildStoreChunkEvent(NodeConnection connection, String name, String version, int chunk_sequence, byte[] bytes, ChunkReplicaInformation replicaInformation) throws IOException {
+        return new StoreChunk(Protocol.STORE_CHUNK, connection, name, version, chunk_sequence, bytes, replicaInformation);
+    }
+
+    // for chaining store chunk events
+    public static Event buildStoreChunkEvent(NodeConnection connection, StoreChunk storeChunk) throws IOException {
+        return new StoreChunk(Protocol.STORE_CHUNK, connection, storeChunk.getFileName(), storeChunk.getVersion(), storeChunk.getChunkSequenceID(), storeChunk.getBytesToStore(), storeChunk.getChunkReplicaInformation());
     }
 
     // MAJOR HEARTBEAT

@@ -13,13 +13,15 @@ public class StoreChunk implements Event {
     private Header header;
 
     private String name;
+    private String version;
     private int chunk_sequence;
     private byte[] bytesToStore;
     private ChunkReplicaInformation replicaInformation;
 
-    public StoreChunk(int protocol, NodeConnection connection, String name, int chunk_sequence, byte[] bytes, ChunkReplicaInformation replicaInformation) {
+    public StoreChunk(int protocol, NodeConnection connection, String name, String version, int chunk_sequence, byte[] bytes, ChunkReplicaInformation replicaInformation) {
         header = new Header(protocol, connection);
         this.name = name;
+        this.version = version;
         this.chunk_sequence = chunk_sequence;
         this.bytesToStore = bytes;
         this.replicaInformation = replicaInformation;
@@ -35,10 +37,15 @@ public class StoreChunk implements Event {
         // file name
         byte[] nameBytes = new byte[din.readInt()];
         din.readFully(nameBytes);
-        name = new String(nameBytes);
+        this.name = new String(nameBytes);
+
+        //version
+        byte[] versionBytes = new byte[din.readInt()];
+        din.readFully(versionBytes);
+        this.version = new String(versionBytes);
 
         // chunk sequence number
-        chunk_sequence = din.readInt();
+        this.chunk_sequence = din.readInt();
 
         // bytes to store
         bytesToStore = new byte[din.readInt()];
@@ -53,7 +60,7 @@ public class StoreChunk implements Event {
 
     @Override
     public int getType() {
-        return Protocol.STORE_CHUNK;
+        return header.getType();
     }
 
     @Override
@@ -69,6 +76,11 @@ public class StoreChunk implements Event {
         byte[] nameBytes = name.getBytes();
         dout.writeInt(nameBytes.length);
         dout.write(nameBytes);
+
+        // version
+        byte[] versionBytes = version.getBytes();
+        dout.writeInt(versionBytes.length);
+        dout.write(versionBytes);
 
         // chunk sequence number
         dout.writeInt(chunk_sequence);
@@ -100,6 +112,10 @@ public class StoreChunk implements Event {
 
     public Header getHeader() {
         return header;
+    }
+
+    public String getVersion() {
+        return version;
     }
 
     public String getFileName() {

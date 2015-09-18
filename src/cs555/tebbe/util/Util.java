@@ -1,26 +1,16 @@
 package cs555.tebbe.util;
 
-import cs555.tebbe.wireformats.*;
-import cs555.tebbe.transport.*;
-import java.net.*;
-import java.io.*;
 import java.util.*;
+import java.util.zip.CRC32;
+import java.util.zip.Checksum;
 
 public class Util {
 
-    // generates a uniq identifier based on the socket
-    public static String generateHashKey(Socket sock) throws IOException {
-        String address = sock.getRemoteSocketAddress().toString();
-        System.out.println("hash key:"+address);
-        return address.substring(address.indexOf("/")+1);
+    public static Long getCheckSum(byte[] bytes) {
+        Checksum checksum = new CRC32();
+        checksum.update(bytes, 0, bytes.length);
+        return new Long(checksum.getValue());
     }
-    // generates id to put in event header
-    public static String generateEventKey(Socket sock) throws IOException {
-        return sock.getLocalAddress().toString().substring(1) + ":" + sock.getLocalPort(); // exclude leading /
-    }
-
-
-
 
     // strips away the IP in the key format
     public static String removePort(String key) {
@@ -36,12 +26,5 @@ public class Util {
 
     public static int generateRandomNumber() {
         return new Random().nextInt();
-    }
-    public static String[] stripFirstElement(String[] toStrip) {
-        String[] toReturn = new String[toStrip.length-1];
-        for(int i=1; i < toStrip.length; i++) {
-            toReturn[i-1] = toStrip[i];
-        }
-        return toReturn;
     }
 }

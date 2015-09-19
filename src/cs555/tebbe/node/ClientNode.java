@@ -58,9 +58,19 @@ public class ClientNode implements Node {
                 String fname = keyboard.nextLine();
                 System.out.println("Text?");
                 optGenerateAndStoreTextFile(fname, keyboard.nextLine());
+            } else if(input.contains("3")) {
+                List<String> fileList = new ArrayList<>(checksumFileMap.keySet());
+                int i=0;
+                for(String file : fileList)
+                    System.out.println(i++ + ". " + file);
+                optReadFile(fileList.get(Integer.parseInt(keyboard.nextLine())));
             }
             input = keyboard.nextLine();
         }
+    }
+
+    private void optReadFile(String filename) {
+        _Controller.sendEvent(EventFactory.buildRequestReadFile(_Controller, filename));
     }
 
     private void optGenerateAndStoreTextFile(String fname, String text) throws IOException {
@@ -89,6 +99,7 @@ public class ClientNode implements Node {
         System.out.println("\t ********************");
         System.out.println("1. Generate & store random byte file");
         System.out.println("2. Generate & store text file");
+        System.out.println("3. Read file");
         System.out.println("\t ********************");
     }
 

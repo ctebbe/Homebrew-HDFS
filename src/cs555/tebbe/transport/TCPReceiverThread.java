@@ -13,10 +13,12 @@ public class TCPReceiverThread extends Thread {
     private Node node;
     private Socket socket;
     private DataInputStream dInputStream;
+    private final String key;
 
     public TCPReceiverThread(Node node, Socket socket) throws IOException {
         this.node = node;
         this.socket = socket;
+        key = socket.getRemoteSocketAddress().toString();
         dInputStream = new DataInputStream(socket.getInputStream());
     }
 
@@ -42,6 +44,7 @@ public class TCPReceiverThread extends Thread {
                 System.out.println("Socket error in receiver thread:"+se.getMessage());
                 break;
             } catch(IOException ioe) {
+                System.out.println("Lost connection to:" + key);
                 System.out.println("IO Exception in receiver thread:"+ioe.getMessage());
                 break;
             }

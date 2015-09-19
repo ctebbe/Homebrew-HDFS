@@ -48,6 +48,21 @@ public class EventFactory {
         return new Heartbeat(Protocol.MINOR_HEARTBEAT, connection, records);
     }
 
+    // REQUEST CHUNK
+    public static Event buildRequestChunk(NodeConnection connection, String filename, int sequence) {
+        return new RequestChunk(Protocol.CHUNK_REQ, connection, filename, sequence);
+    }
+
+    // REQUEST FILE
+    public static Event buildRequestReadFile(NodeConnection connection, String filename) {
+        return new RequestChunk(Protocol.READ_FILE_REQ, connection, filename, 0);
+    }
+
+    // RESPONSE READ FILE
+    public static Event buildFileRouteEvent(NodeConnection connection, String fileName, ChunkReplicaInformation[] chunkReplicases) throws IOException {
+        return new ChunkRoute(Protocol.READ_FILE_RESP, connection, fileName, chunkReplicases);
+    }
+
     public static Event buildEvent(byte[] marshalledBytes) throws IOException {
         try {
             ByteArrayInputStream bais = new ByteArrayInputStream(marshalledBytes);
@@ -64,8 +79,12 @@ public class EventFactory {
                     return new StoreChunk(marshalledBytes);
                 case Protocol.MAJOR_HEARTBEAT:
                     return new Heartbeat(marshalledBytes);
-                case Protocol.MINOR_HEARTBEAT:
-                    return new Heartbeat(marshalledBytes);
+                case Protocol.CHUNK_REQ:
+                    return new RequestChunk(marshalledBytes);
+                case Protocol.READ_FILE_REQ:
+                    return new RequestChunk(marshalledBytes);
+                case Protocol.READ_FILE_RESP:
+                    return new ChunkRoute(marshalledBytes);
                 default: return null;
             }
         } catch(IOException ioe) { 

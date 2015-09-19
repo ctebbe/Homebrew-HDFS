@@ -1,10 +1,27 @@
 package cs555.tebbe.util;
 
+import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.zip.CRC32;
 import java.util.zip.Checksum;
 
 public class Util {
+
+    /*
+        return a 16 digit checksum
+     */
+    public static String getCheckSumSHA1(byte[] bytes) {
+        try {
+            MessageDigest hasher = MessageDigest.getInstance("SHA-1");
+            hasher.reset();
+            hasher.update(bytes);
+            return new BigInteger(1, hasher.digest()).toString(16);
+
+        } catch (NoSuchAlgorithmException e) { e.printStackTrace(); }
+        return "";
+    }
 
     public static Long getCheckSum(byte[] bytes) {
         Checksum checksum = new CRC32();

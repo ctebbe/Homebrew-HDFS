@@ -18,7 +18,8 @@ public class StoreChunk implements Event {
     private byte[] bytesToStore;
     private ChunkReplicaInformation replicaInformation;
 
-    public StoreChunk(int protocol, NodeConnection connection, String name, String version, int chunk_sequence, byte[] bytes, ChunkReplicaInformation replicaInformation) {
+    public StoreChunk(int protocol, NodeConnection connection, String name, String version, int chunk_sequence,
+                      byte[] bytes, ChunkReplicaInformation replicaInformation) {
         header = new Header(protocol, connection);
         this.name = name;
         this.version = version;

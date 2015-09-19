@@ -18,6 +18,7 @@ public class Protocol {
 
     // read
     public static final int READ_FILE_REQ           = 105;
+    public static final int READ_FILE_RESP          = 115;
     public static final int CHUNK_REQ               = 106;
 
     // error detection

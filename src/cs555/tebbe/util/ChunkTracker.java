@@ -50,6 +50,10 @@ public class ChunkTracker {
         return chunkReplicas;
     }
 
+    public ChunkReplicaInformation[] getFileChunkLocations(String filename) {
+        return fileTrackerMap.get(filename);
+    }
+
     public static int getNumChunksToAllocate(int fSizeKB) {
         int chunks = (int) Math.ceil(fSizeKB/Protocol.CHUNK_SIZE_KB);
         return (chunks == 0) ? 1 : chunks;                              // store files <64KB in a single chunk
@@ -67,8 +71,7 @@ public class ChunkTracker {
             if(!allSame) break;
         }
 
-        if(allSame)
-            Collections.shuffle(nodeInfos); // if chunks are equally distributed, randomly assign replicas
+        if(allSame) Collections.shuffle(nodeInfos); // if chunks are equally distributed, randomly assign replicas
         else
             Collections.sort(nodeInfos, new Comparator<LiveChunkNodeData>() {
                 @Override

@@ -49,8 +49,15 @@ public class ChunkNode implements Node {
             case Protocol.CHUNK_ROUTE:
                 System.out.println("chunk route received");
                 break;
+            case Protocol.CHUNK_REQ:
+                processChunkRequest((RequestChunk) event);
+                break;
 
         }
+    }
+
+    private void processChunkRequest(RequestChunk event) {
+        System.out.println(event.getHeader().getSenderKey() + " requesting chunk " + event.getChunkStorageName());
     }
 
     private void processStoreChunk(StoreChunk event) {

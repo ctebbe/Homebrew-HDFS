@@ -48,9 +48,22 @@ public class ControllerNode implements Node {
             case Protocol.MAJOR_HEARTBEAT:
                 processMajorHeartbeat((Heartbeat) event);
                 break;
+            case Protocol.READ_FILE_REQ:
+                try {
+                    processReadFileRequest((RequestChunk) event);
+                } catch (IOException e) {
+                    System.out.println("error sending read request");
+                    e.printStackTrace();
+                }
+                break;
             default:
                 display("unknown event type.");
         }
+    }
+
+    private void processReadFileRequest(RequestChunk event) throws IOException {
+        NodeConnection client = bufferMap.get(event.getHeader().getSenderKey());
+        client.sendEvent(EventFactory.buildFileRouteEvent(client, event.getFilename(), chunkTracker.getFileChunkLocations(event.getFilename())));
     }
 
     private void processMajorHeartbeat(Heartbeat event) {

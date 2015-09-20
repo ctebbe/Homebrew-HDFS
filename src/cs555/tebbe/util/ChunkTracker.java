@@ -1,10 +1,14 @@
 package cs555.tebbe.util;
 
+import cs555.tebbe.node.ChunkStorage;
 import cs555.tebbe.node.LiveChunkNodeData;
+import cs555.tebbe.transport.NodeConnection;
 import cs555.tebbe.wireformats.ChunkReplicaInformation;
+import cs555.tebbe.wireformats.EventFactory;
 import cs555.tebbe.wireformats.Protocol;
 import cs555.tebbe.wireformats.StoreFileRequest;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -40,8 +44,9 @@ public class ChunkTracker {
         System.out.println("File size KB:" + fSizeKB);
         System.out.println("Replicas assigned:");
         System.out.println("File name: " + reqEvent.getFileName());
+        int i=0;
         for(ChunkReplicaInformation info : chunkReplicas) {
-            System.out.println("-- new Chunk");
+            System.out.println("-- Chunk " + i++);
             for(String s : info.getReplicaChunkNodes()) {
                 System.out.println("\t" + s);
             }
@@ -86,5 +91,18 @@ public class ChunkTracker {
             replicaList.add(Util.removePort(nodeKey));
         }
         return new ChunkReplicaInformation(replicaList.toArray(new String[]{}));
+    }
+
+    public void processDeadNode(String disconnectedIP) throws IOException {
+        LiveChunkNodeData removedNodeData = chunkNodeMap.remove(disconnectedIP);
+        for(ChunkStorage record : removedNodeData.getStorageRecords()) {
+            String newReplicaHostname = generateUniqueChunkRoute().getReplicaChunkNodes()[0]; // new desired replica node
+            ChunkReplicaInformation info = fileTrackerMap.get(record.getFileName())[record.getSequence()];
+            if(info.replaceReplicaRecord(disconnectedIP, newReplicaHostname)) {
+                System.out.println("correcting replica levels:");
+                NodeConnection newConnection = chunkNodeMap.get(newReplicaHostname).getConnection();
+                newConnection.sendEvent(EventFactory.buildChunkRouteEvent(newConnection, record.getFileName(), record.getSequence(), fileTrackerMap.get(record.getFileName())));
+            }
+        }
     }
 }

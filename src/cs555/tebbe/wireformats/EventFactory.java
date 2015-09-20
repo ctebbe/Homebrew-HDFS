@@ -28,6 +28,10 @@ public class EventFactory {
         return new ChunkRoute(Protocol.CHUNK_ROUTE, connection, fileName, chunkReplicases);
     }
 
+    public static Event buildChunkRouteEvent(NodeConnection connection, String fileName, int sequence, ChunkReplicaInformation[] chunkReplicases) throws IOException {
+        return new ChunkRoute(Protocol.CHUNK_ROUTE, connection, fileName, sequence, chunkReplicases);
+    }
+
     // STORE CHUNK EVENT
     public static Event buildStoreChunkEvent(NodeConnection connection, String name, String version, int chunk_sequence, byte[] bytes, ChunkReplicaInformation replicaInformation) throws IOException {
         return new StoreChunk(Protocol.STORE_CHUNK, connection, name, version, chunk_sequence, bytes, replicaInformation);

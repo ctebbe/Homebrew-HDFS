@@ -11,11 +11,19 @@ public class ChunkRoute implements Event {
 
     private Header header;
     private String fileName;
+    private int sequence;
     private ChunkReplicaInformation[] chunks;
 
     public ChunkRoute(int protocol, NodeConnection connection, String filename, ChunkReplicaInformation[] chunks) {
         header = new Header(protocol, connection);
         this.fileName = filename;
+        this.chunks = chunks;
+    }
+
+    public ChunkRoute(int protocol, NodeConnection connection, String filename, int sequence, ChunkReplicaInformation[] chunks) {
+        header = new Header(protocol, connection);
+        this.fileName = filename;
+        this.sequence = sequence;
         this.chunks = chunks;
     }
 
@@ -32,6 +40,9 @@ public class ChunkRoute implements Event {
         byte[] receiverBytes = new byte[nameLen];
         din.readFully(receiverBytes);
         fileName = new String(receiverBytes);
+
+        // sequence number
+        sequence = din.readInt();
 
         // chunk routes
         chunks = new ChunkReplicaInformation[din.readInt()];
@@ -58,6 +69,9 @@ public class ChunkRoute implements Event {
         dout.writeInt(nameBytes.length);
         dout.write(nameBytes);
 
+        // sequence number
+        dout.writeInt(sequence);
+
         // chunk routes
         dout.writeInt(chunks.length);
         for(ChunkReplicaInformation route : chunks) {
@@ -74,6 +88,10 @@ public class ChunkRoute implements Event {
 
     public ChunkReplicaInformation[] getChunksInformation() {
         return chunks;
+    }
+
+    public int getSequence() {
+        return sequence;
     }
 
     @Override

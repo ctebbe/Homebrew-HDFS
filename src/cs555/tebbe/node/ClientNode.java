@@ -11,8 +11,6 @@ import java.io.IOException;
 import java.net.Socket;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.zip.CRC32;
-import java.util.zip.Checksum;
 
 /**
  * Created by ct.
@@ -144,7 +142,7 @@ public class ClientNode implements Node {
     private void processCorruptChunkDetected(ChunkIdentifier event) throws IOException {
         String failedNode = Util.removePort(event.getHeader().getSenderKey());
         ChunkReplicaInformation replicaInformation = cachedReplicaData[event.getSequence()];
-        String replica = Util.getNextReplica(replicaInformation, failedNode);
+        String replica = Util.getOtherReplica(replicaInformation, failedNode);
         System.out.println("Correcting error in file, contacting node: " + replica);
         NodeConnection node = getChunkNodeConnection(replica);
         node.sendEvent(EventFactory.buildRequestChunk(node, event.getFilename(), event.getSequence()));
@@ -191,9 +189,11 @@ public class ClientNode implements Node {
     }
 
     private NodeConnection getChunkNodeConnection(String hostname) throws IOException {
-        if(!chunkNodeLiveConnectionsMap.containsKey(hostname))
-            chunkNodeLiveConnectionsMap.put(hostname, ConnectionFactory.buildConnection(this, hostname, ChunkNode.DEFAULT_SERVER_PORT));
-        return chunkNodeLiveConnectionsMap.get(hostname);
+        synchronized (chunkNodeLiveConnectionsMap) {
+            if(!chunkNodeLiveConnectionsMap.containsKey(hostname))
+                chunkNodeLiveConnectionsMap.put(hostname, ConnectionFactory.buildConnection(this, hostname, ChunkNode.DEFAULT_SERVER_PORT));
+            return chunkNodeLiveConnectionsMap.get(hostname);
+        }
     }
 
     /*
@@ -217,7 +217,7 @@ public class ClientNode implements Node {
 
     @Override
     public void lostConnection(String disconnectedIP) {
-
+        chunkNodeLiveConnectionsMap.remove(disconnectedIP);
     }
 
     public static void main(String[] args) {

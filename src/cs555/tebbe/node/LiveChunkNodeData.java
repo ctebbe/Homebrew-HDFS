@@ -27,6 +27,9 @@ public class LiveChunkNodeData {
         return connection.getRemoteKey();
     }
 
+    public ChunkStorage[] getStorageRecords() {
+        return storageRecords.toArray(new ChunkStorage[]{});
+    }
     public void appendNewRecords(ChunkStorage[] recordsToAdd) {
         synchronized (storageRecords) {
             storageRecords.addAll(Arrays.asList(recordsToAdd));

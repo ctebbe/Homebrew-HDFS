@@ -46,6 +46,15 @@ public class ChunkReplicaInformation implements Event {
         return marshalledBytes;
     }
 
+    public boolean replaceReplicaRecord(String oldRecord, String newRecord) {
+        for(int i=0; i < replicaChunkNodes.length; i++) {
+            if(replicaChunkNodes[i].equals(oldRecord)) {
+                replicaChunkNodes[i] = newRecord;
+                return true;
+            }
+        } return false;
+    }
+
     public String[] getReplicaChunkNodes() {
         return replicaChunkNodes;
     }

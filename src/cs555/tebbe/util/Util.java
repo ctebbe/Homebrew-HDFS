@@ -30,7 +30,7 @@ public class Util {
         return key.substring(0, key.indexOf(":"));
     }
     public static int removeIPAddress(String key) {
-        return Integer.parseInt(key.substring(key.indexOf(":")+1));
+        return Integer.parseInt(key.substring(key.indexOf(":") + 1));
     }
 
     public static int generateRandomNumber(int min, int max) {
@@ -41,12 +41,10 @@ public class Util {
         return new Random().nextInt();
     }
 
-    public static String getNextReplica(ChunkReplicaInformation replicaInformation, String failedNode) {
-        boolean nextFound = false;
+    public static String getOtherReplica(ChunkReplicaInformation replicaInformation, String failedNode) {
         for(String replica : replicaInformation.getReplicaChunkNodes()) {
-            if(nextFound) return replica;
-            nextFound = failedNode.equals(replica);
-        }
-        return null;
+            if(!replica.equals(failedNode))
+                return replica;
+        } return null;
     }
 }

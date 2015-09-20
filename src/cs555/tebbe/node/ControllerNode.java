@@ -71,9 +71,8 @@ public class ControllerNode implements Node {
     }
 
     private void processCorruptCheckRequest(ChunkIdentifier event) throws IOException {
-        System.out.println("corrupt from:" + event.getHeader().getSenderKey());
         NodeConnection chunkNode = chunkNodeMap.get(event.getHeader().getSenderKey()).getConnection();
-        chunkNode.sendEvent(EventFactory.buildChunkRouteEvent(chunkNode, event.getFilename(), chunkTracker.getFileChunkLocations(event.getFilename())));
+        chunkNode.sendEvent(EventFactory.buildChunkRouteEvent(chunkNode, event.getFilename(), event.getSequence(), chunkTracker.getFileChunkLocations(event.getFilename())));
     }
 
     private void processReadFileRequest(ChunkIdentifier event) throws IOException {
@@ -108,7 +107,8 @@ public class ControllerNode implements Node {
     }
 
     @Override
-    public void lostConnection(String disconnectedIP) {
+    public synchronized void lostConnection(String disconnectedIP) {
+        chunkTracker.processDeadNode(disconnectedIP);
         System.out.println("Lost connection:"+disconnectedIP);
     }
 

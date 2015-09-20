@@ -50,9 +50,9 @@ public class ChunkNode implements Node {
             case Protocol.STORE_CHUNK:
                 processStoreChunk((StoreChunk) event);
                 break;
-            case Protocol.CHUNK_ROUTE: // used for requesting replica chunks to correct errors
+            case Protocol.CHUNK_ROUTE: // used for requesting replica chunks to correct errors or downed nodes
                 try {
-                    processErrorCorrection((ChunkRoute) event);
+                    processChunkRoute((ChunkRoute) event);
                 } catch (IOException e) {
                     System.out.println("error correcting corrupt chunk");
                     e.printStackTrace();
@@ -70,13 +70,15 @@ public class ChunkNode implements Node {
         }
     }
 
-    private void processErrorCorrection(ChunkRoute event) throws IOException {
-        String replica = Util.getNextReplica(event.getChunksInformation()[errorSequence], Util.removePort(_Controller.getLocalKey()));
+    /*
+        pulls desired chunk from one of the valid replicas
+     */
+    private void processChunkRoute(ChunkRoute event) throws IOException {
+        String replica = Util.getOtherReplica(event.getChunksInformation()[event.getSequence()], Util.removePort(_Controller.getLocalKey()));
         NodeConnection node = ConnectionFactory.buildConnection(this, replica, DEFAULT_SERVER_PORT);
-        node.sendEvent(EventFactory.buildRequestChunk(node, event.getFileName(), errorSequence));
+        node.sendEvent(EventFactory.buildRequestChunk(node, event.getFileName(), event.getSequence()));
     }
 
-    private int errorSequence;
     private void processChunkRequest(ChunkIdentifier event) throws IOException {
         System.out.println(event.getHeader().getSenderKey() + " requesting chunk " + event.getChunkStorageName());
 
@@ -90,7 +92,6 @@ public class ChunkNode implements Node {
         // integrity check
         System.out.println("integrity check:" + (record.getChecksum().equals(Util.getCheckSumSHA1(bytesToSend)) ? "passed" : "failed"));
         if(!record.getChecksum().equals(Util.getCheckSumSHA1(bytesToSend))) { // error correction
-            errorSequence = event.getSequence();
             client.sendEvent(EventFactory.buildCorruptChunkRequest(client, event.getFilename(), event.getSequence()));
             _Controller.sendEvent(EventFactory.buildCorruptChunkRequest(_Controller, event.getFilename(), event.getSequence()));
         } else
@@ -145,7 +146,7 @@ public class ChunkNode implements Node {
 
     @Override
     public void lostConnection(String disconnectedIP) {
-        System.out.println("Lost connection to:"+disconnectedIP);
+        System.out.println("Lost connection to:" + disconnectedIP);
     }
 
     public static void main(String args[]) {

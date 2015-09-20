@@ -38,6 +38,10 @@ public class EventFactory {
         return new StoreChunk(Protocol.STORE_CHUNK, connection, storeChunk.getFileName(), storeChunk.getVersion(), storeChunk.getChunkSequenceID(), storeChunk.getBytesToStore(), storeChunk.getChunkReplicaInformation());
     }
 
+    public static Event buildStoreChunkEvent(NodeConnection connection, ChunkStorage storage, byte[] bytesToStore, ChunkReplicaInformation info) throws IOException {
+        return new StoreChunk(Protocol.STORE_CHUNK, connection, storage.getFileName(), storage.getVersion(), storage.getSequence(), bytesToStore, info);
+    }
+
     // MAJOR HEARTBEAT
     public static Event buildMajorHeartbeat(NodeConnection connection, ChunkStorage[] records) throws IOException {
         return new Heartbeat(Protocol.MAJOR_HEARTBEAT, connection, records);
@@ -50,12 +54,17 @@ public class EventFactory {
 
     // REQUEST CHUNK
     public static Event buildRequestChunk(NodeConnection connection, String filename, int sequence) {
-        return new RequestChunk(Protocol.CHUNK_REQ, connection, filename, sequence);
+        return new ChunkIdentifier(Protocol.CHUNK_REQ, connection, filename, sequence);
+    }
+
+    // CORRUPTION DETECTION
+    public static Event buildCorruptChunkRequest(NodeConnection connection, String filename, int sequence) {
+        return new ChunkIdentifier(Protocol.CORRUPT_CHUNK_REQ, connection, filename, sequence);
     }
 
     // REQUEST FILE
     public static Event buildRequestReadFile(NodeConnection connection, String filename) {
-        return new RequestChunk(Protocol.READ_FILE_REQ, connection, filename, 0);
+        return new ChunkIdentifier(Protocol.READ_FILE_REQ, connection, filename, 0);
     }
 
     // RESPONSE READ FILE
@@ -79,12 +88,16 @@ public class EventFactory {
                     return new StoreChunk(marshalledBytes);
                 case Protocol.MAJOR_HEARTBEAT:
                     return new Heartbeat(marshalledBytes);
+                case Protocol.MINOR_HEARTBEAT:
+                    return new Heartbeat(marshalledBytes);
                 case Protocol.CHUNK_REQ:
-                    return new RequestChunk(marshalledBytes);
+                    return new ChunkIdentifier(marshalledBytes);
                 case Protocol.READ_FILE_REQ:
-                    return new RequestChunk(marshalledBytes);
+                    return new ChunkIdentifier(marshalledBytes);
                 case Protocol.READ_FILE_RESP:
                     return new ChunkRoute(marshalledBytes);
+                case Protocol.CORRUPT_CHUNK_REQ:
+                    return new ChunkIdentifier(marshalledBytes);
                 default: return null;
             }
         } catch(IOException ioe) { 

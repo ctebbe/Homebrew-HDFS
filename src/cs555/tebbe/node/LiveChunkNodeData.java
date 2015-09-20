@@ -19,6 +19,10 @@ public class LiveChunkNodeData {
         this.connection = connection;
     }
 
+    public NodeConnection getConnection() {
+        return connection;
+    }
+
     public String getNodeKey() {
         return connection.getRemoteKey();
     }

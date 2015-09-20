@@ -5,6 +5,9 @@ import cs555.tebbe.wireformats.*;
 
 import java.io.*;
 import java.net.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -15,10 +18,11 @@ public class ChunkNode implements Node {
     public static final int MINOR_HB_SECONDS = MAJOR_HB_SECONDS/10;
 
     public static final int DEFAULT_SERVER_PORT = 18080;
-    public static final String BASE_SAVE_DIR = "./";
+    public static final String BASE_SAVE_DIR = "/tmp/cs555_data/";
 
     private NodeConnection _Controller = null;
     private TCPServerThread serverThread = null;                                // listens for incoming client nodes
+    private Map<String, NodeConnection> connectionsMap = new ConcurrentHashMap<>();
     private ConcurrentHashMap<String, ChunkStorage> storedChunksMap = new ConcurrentHashMap<>();
     private List<ChunkStorage> newChunksStored = new ArrayList<>();             // holds data items for minor heartbeats
 
@@ -46,24 +50,57 @@ public class ChunkNode implements Node {
             case Protocol.STORE_CHUNK:
                 processStoreChunk((StoreChunk) event);
                 break;
-            case Protocol.CHUNK_ROUTE:
-                System.out.println("chunk route received");
+            case Protocol.CHUNK_ROUTE: // used for requesting replica chunks to correct errors
+                try {
+                    processErrorCorrection((ChunkRoute) event);
+                } catch (IOException e) {
+                    System.out.println("error correcting corrupt chunk");
+                    e.printStackTrace();
+                }
                 break;
             case Protocol.CHUNK_REQ:
-                processChunkRequest((RequestChunk) event);
+                try {
+                    processChunkRequest((ChunkIdentifier) event);
+                } catch (IOException e) {
+                    System.out.println("Error processing chunk request.");
+                    e.printStackTrace();
+                }
                 break;
 
         }
     }
 
-    private void processChunkRequest(RequestChunk event) {
+    private void processErrorCorrection(ChunkRoute event) throws IOException {
+        String replica = Util.getNextReplica(event.getChunksInformation()[errorSequence], Util.removePort(_Controller.getLocalKey()));
+        NodeConnection node = ConnectionFactory.buildConnection(this, replica, DEFAULT_SERVER_PORT);
+        node.sendEvent(EventFactory.buildRequestChunk(node, event.getFileName(), errorSequence));
+    }
+
+    private int errorSequence;
+    private void processChunkRequest(ChunkIdentifier event) throws IOException {
         System.out.println(event.getHeader().getSenderKey() + " requesting chunk " + event.getChunkStorageName());
+
+        NodeConnection client = connectionsMap.get(event.getHeader().getSenderKey());
+        ChunkStorage record = storedChunksMap.get(event.getChunkStorageName());
+
+        // get file data
+        Path path = Paths.get(BASE_SAVE_DIR+event.getChunkStorageName());
+        byte[] bytesToSend = Files.readAllBytes(path);
+
+        // integrity check
+        System.out.println("integrity check:" + (record.getChecksum().equals(Util.getCheckSumSHA1(bytesToSend)) ? "passed" : "failed"));
+        if(!record.getChecksum().equals(Util.getCheckSumSHA1(bytesToSend))) { // error correction
+            errorSequence = event.getSequence();
+            client.sendEvent(EventFactory.buildCorruptChunkRequest(client, event.getFilename(), event.getSequence()));
+            _Controller.sendEvent(EventFactory.buildCorruptChunkRequest(_Controller, event.getFilename(), event.getSequence()));
+        } else
+            client.sendEvent(EventFactory.buildStoreChunkEvent(client, record, bytesToSend, new ChunkReplicaInformation(new String[]{})));
     }
 
     private void processStoreChunk(StoreChunk event) {
         System.out.println("** Storing new chunk for file: " + event.getFileName());
 
-        ChunkStorage record = new ChunkStorage(event.getFileName(), event.getVersion(), event.getChunkSequenceID(), new Date().getTime(), Util.getCheckSum(event.getBytesToStore()));
+        ChunkStorage record = new ChunkStorage(event.getFileName(), event.getVersion(), event.getChunkSequenceID(), new Date().getTime(), Util.getCheckSumSHA1(event.getBytesToStore()));
         System.out.println("Checksum:" + record.getChecksum());
         storeChunk(record.getChunkStorageName(), event.getBytesToStore());
         storeNewRecord(record);
@@ -88,7 +125,10 @@ public class ChunkNode implements Node {
     private void storeChunk(String storeFileName, byte[] toStore) {
         BufferedOutputStream writer = null;
         try {
-            writer = new BufferedOutputStream(new FileOutputStream(new File(BASE_SAVE_DIR +storeFileName)));
+            File file = new File(BASE_SAVE_DIR+storeFileName);
+            file.getParentFile().mkdirs();
+            file.createNewFile();
+            writer = new BufferedOutputStream(new FileOutputStream(file));
             writer.write(toStore);
         } catch (IOException e) {
             System.out.println("Error saving file...");
@@ -100,6 +140,12 @@ public class ChunkNode implements Node {
 
     public void registerConnection(NodeConnection connection) {
         System.out.println("New connection: " + connection.getRemoteKey());
+        connectionsMap.put(connection.getRemoteKey(), connection);
+    }
+
+    @Override
+    public void lostConnection(String disconnectedIP) {
+        System.out.println("Lost connection to:"+disconnectedIP);
     }
 
     public static void main(String args[]) {

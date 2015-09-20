@@ -7,19 +7,19 @@ import java.io.*;
 /**
  * Created by ct.
  */
-public class RequestChunk implements Event {
+public class ChunkIdentifier implements Event {
 
     private Header header;
     private String filename;
     private int sequence;
 
-    public RequestChunk(int protocol, NodeConnection connection, String name, int sequence) {
+    public ChunkIdentifier(int protocol, NodeConnection connection, String name, int sequence) {
         header = new Header(protocol, connection);
         this.filename = name;
         this.sequence = sequence;
     }
 
-    public RequestChunk(byte[] marshalledBytes) throws IOException {
+    public ChunkIdentifier(byte[] marshalledBytes) throws IOException {
         ByteArrayInputStream bais = new ByteArrayInputStream(marshalledBytes);
         DataInputStream din = new DataInputStream(new BufferedInputStream(bais));
 
@@ -69,6 +69,10 @@ public class RequestChunk implements Event {
 
     public Header getHeader() {
         return header;
+    }
+
+    public int getSequence() {
+        return sequence;
     }
 
     public String getChunkStorageName() {

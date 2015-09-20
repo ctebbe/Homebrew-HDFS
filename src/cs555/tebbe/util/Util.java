@@ -1,5 +1,7 @@
 package cs555.tebbe.util;
 
+import cs555.tebbe.wireformats.ChunkReplicaInformation;
+
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -23,12 +25,6 @@ public class Util {
         return "";
     }
 
-    public static Long getCheckSum(byte[] bytes) {
-        Checksum checksum = new CRC32();
-        checksum.update(bytes, 0, bytes.length);
-        return new Long(checksum.getValue());
-    }
-
     // strips away the IP in the key format
     public static String removePort(String key) {
         return key.substring(0, key.indexOf(":"));
@@ -43,5 +39,14 @@ public class Util {
 
     public static int generateRandomNumber() {
         return new Random().nextInt();
+    }
+
+    public static String getNextReplica(ChunkReplicaInformation replicaInformation, String failedNode) {
+        boolean nextFound = false;
+        for(String replica : replicaInformation.getReplicaChunkNodes()) {
+            if(nextFound) return replica;
+            nextFound = failedNode.equals(replica);
+        }
+        return null;
     }
 }

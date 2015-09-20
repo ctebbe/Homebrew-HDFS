@@ -1,5 +1,6 @@
 package cs555.tebbe.transport;
 import cs555.tebbe.node.*;
+import cs555.tebbe.util.Util;
 import cs555.tebbe.wireformats.*;
 
 import java.io.*;
@@ -44,8 +45,7 @@ public class TCPReceiverThread extends Thread {
                 System.out.println("Socket error in receiver thread:"+se.getMessage());
                 break;
             } catch(IOException ioe) {
-                System.out.println("Lost connection to:" + key);
-                System.out.println("IO Exception in receiver thread:"+ioe.getMessage());
+                node.lostConnection(Util.removePort(key.substring(1)));
                 break;
             }
         }

@@ -50,9 +50,18 @@ public class ControllerNode implements Node {
                 break;
             case Protocol.READ_FILE_REQ:
                 try {
-                    processReadFileRequest((RequestChunk) event);
+                    processReadFileRequest((ChunkIdentifier) event);
                 } catch (IOException e) {
                     System.out.println("error sending read request");
+                    e.printStackTrace();
+                }
+                break;
+            case Protocol.CORRUPT_CHUNK_REQ:
+                System.out.println("corrupt req");
+                try {
+                    processCorruptCheckRequest((ChunkIdentifier) event);
+                } catch (IOException e) {
+                    System.out.println("error correcting corruption");
                     e.printStackTrace();
                 }
                 break;
@@ -61,7 +70,13 @@ public class ControllerNode implements Node {
         }
     }
 
-    private void processReadFileRequest(RequestChunk event) throws IOException {
+    private void processCorruptCheckRequest(ChunkIdentifier event) throws IOException {
+        System.out.println("corrupt from:" + event.getHeader().getSenderKey());
+        NodeConnection chunkNode = chunkNodeMap.get(event.getHeader().getSenderKey()).getConnection();
+        chunkNode.sendEvent(EventFactory.buildChunkRouteEvent(chunkNode, event.getFilename(), chunkTracker.getFileChunkLocations(event.getFilename())));
+    }
+
+    private void processReadFileRequest(ChunkIdentifier event) throws IOException {
         NodeConnection client = bufferMap.get(event.getHeader().getSenderKey());
         client.sendEvent(EventFactory.buildFileRouteEvent(client, event.getFilename(), chunkTracker.getFileChunkLocations(event.getFilename())));
     }
@@ -90,6 +105,11 @@ public class ControllerNode implements Node {
 
     public synchronized void registerConnection(NodeConnection connection) {
         bufferMap.put(connection.getRemoteKey(), connection);
+    }
+
+    @Override
+    public void lostConnection(String disconnectedIP) {
+        System.out.println("Lost connection:"+disconnectedIP);
     }
 
     public void display(String str) {

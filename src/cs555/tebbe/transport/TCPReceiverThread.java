@@ -19,7 +19,7 @@ public class TCPReceiverThread extends Thread {
     public TCPReceiverThread(Node node, Socket socket) throws IOException {
         this.node = node;
         this.socket = socket;
-        key = socket.getRemoteSocketAddress().toString();
+        key = socket.getRemoteSocketAddress().toString().substring(1);
         dInputStream = new DataInputStream(socket.getInputStream());
     }
 
@@ -45,7 +45,7 @@ public class TCPReceiverThread extends Thread {
                 System.out.println("Socket error in receiver thread:"+se.getMessage());
                 break;
             } catch(IOException ioe) {
-                node.lostConnection(Util.removePort(key.substring(1)));
+                node.lostConnection(key);
                 break;
             }
         }

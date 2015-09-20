@@ -69,14 +69,18 @@ public class ChunkTracker {
      */
     private ChunkReplicaInformation generateUniqueChunkRoute() {
         List<LiveChunkNodeData> nodeInfos = new ArrayList<>(chunkNodeMap.values()); // a snapshot of the current connections
-        boolean allSame = false;
+        Collections.shuffle(nodeInfos); // randomly shuffle nodes
+        /*
+        int numSame = 0;
         int compareNum = nodeInfos.get(0).getChunks();
         for(LiveChunkNodeData info : nodeInfos) {
-            allSame = compareNum == info.getChunks() ? true : false;
-            if(!allSame) break;
+            if(compareNum == info.getChunks()) numSame++;
         }
 
-        if(allSame) Collections.shuffle(nodeInfos); // if chunks are equally distributed, randomly assign replicas
+        if(numSame/nodeInfos.size() > 0.75) {
+            System.out.println("shuffle");
+            Collections.shuffle(nodeInfos); // randomly shuffle nodes
+        }
         else
             Collections.sort(nodeInfos, new Comparator<LiveChunkNodeData>() {
                 @Override
@@ -84,6 +88,7 @@ public class ChunkTracker {
                     return new Integer(o1.getChunks()).compareTo(o2.getChunks());
                 }
             });
+        */
 
         List<String> replicaList = new ArrayList<>();
         for(int i=0; i < Protocol.NUM_REPLICAS_PER_CHUNK; i++) {
@@ -93,15 +98,20 @@ public class ChunkTracker {
         return new ChunkReplicaInformation(replicaList.toArray(new String[]{}));
     }
 
-    public void processDeadNode(String disconnectedIP) throws IOException {
-        LiveChunkNodeData removedNodeData = chunkNodeMap.remove(disconnectedIP);
+    public void processDeadNode(String disconnectedNodeKey, List<String> keys) throws IOException {
+        System.out.println("disconnected: " + disconnectedNodeKey);
+        System.out.println("key?: " + chunkNodeMap.containsKey(disconnectedNodeKey));
+        LiveChunkNodeData removedNodeData = chunkNodeMap.remove(disconnectedNodeKey);
         for(ChunkStorage record : removedNodeData.getStorageRecords()) {
             String newReplicaHostname = generateUniqueChunkRoute().getReplicaChunkNodes()[0]; // new desired replica node
+            System.out.println("new replica for chunk "+ record.getSequence() +": " + newReplicaHostname);
             ChunkReplicaInformation info = fileTrackerMap.get(record.getFileName())[record.getSequence()];
-            if(info.replaceReplicaRecord(disconnectedIP, newReplicaHostname)) {
-                System.out.println("correcting replica levels:");
-                NodeConnection newConnection = chunkNodeMap.get(newReplicaHostname).getConnection();
-                newConnection.sendEvent(EventFactory.buildChunkRouteEvent(newConnection, record.getFileName(), record.getSequence(), fileTrackerMap.get(record.getFileName())));
+            if(info.replaceReplicaRecord(Util.removePort(disconnectedNodeKey), newReplicaHostname)) {
+                for(String key : keys)
+                    if(key.contains(newReplicaHostname)) {
+                        NodeConnection newConnection = chunkNodeMap.get(key).getConnection();
+                        newConnection.sendEvent(EventFactory.buildChunkRouteEvent(newConnection, record.getFileName(), record.getSequence(), fileTrackerMap.get(record.getFileName())));
+                    }
             }
         }
     }

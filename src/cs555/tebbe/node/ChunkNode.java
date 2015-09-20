@@ -80,6 +80,7 @@ public class ChunkNode implements Node {
     }
 
     private void processChunkRequest(ChunkIdentifier event) throws IOException {
+        System.out.println();
         System.out.println(event.getHeader().getSenderKey() + " requesting chunk " + event.getChunkStorageName());
 
         NodeConnection client = connectionsMap.get(event.getHeader().getSenderKey());
@@ -96,11 +97,12 @@ public class ChunkNode implements Node {
             _Controller.sendEvent(EventFactory.buildCorruptChunkRequest(_Controller, event.getFilename(), event.getSequence()));
         } else
             client.sendEvent(EventFactory.buildStoreChunkEvent(client, record, bytesToSend, new ChunkReplicaInformation(new String[]{})));
+        System.out.println();
     }
 
     private void processStoreChunk(StoreChunk event) {
-        System.out.println("** Storing new chunk for file: " + event.getFileName());
-
+        System.out.println();
+        System.out.println("** Storing new chunk #" + event.getChunkSequenceID() + " for file: " + event.getFileName());
         ChunkStorage record = new ChunkStorage(event.getFileName(), event.getVersion(), event.getChunkSequenceID(), new Date().getTime(), Util.getCheckSumSHA1(event.getBytesToStore()));
         System.out.println("Checksum:" + record.getChecksum());
         storeChunk(record.getChunkStorageName(), event.getBytesToStore());
@@ -114,6 +116,7 @@ public class ChunkNode implements Node {
                 e.printStackTrace();
             }
         }
+        System.out.println();
     }
 
     private void storeNewRecord(ChunkStorage record) {

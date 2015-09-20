@@ -5,6 +5,7 @@ import cs555.tebbe.wireformats.*;
 
 import java.io.*;
 import java.net.*;
+import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ControllerNode implements Node {
@@ -57,7 +58,6 @@ public class ControllerNode implements Node {
                 }
                 break;
             case Protocol.CORRUPT_CHUNK_REQ:
-                System.out.println("corrupt req");
                 try {
                     processCorruptCheckRequest((ChunkIdentifier) event);
                 } catch (IOException e) {
@@ -107,9 +107,14 @@ public class ControllerNode implements Node {
     }
 
     @Override
-    public synchronized void lostConnection(String disconnectedIP) {
-        chunkTracker.processDeadNode(disconnectedIP);
-        System.out.println("Lost connection:"+disconnectedIP);
+    public synchronized void lostConnection(String disconnectedConnectionKey) {
+        try {
+            chunkTracker.processDeadNode(disconnectedConnectionKey, new ArrayList<>(chunkNodeMap.keySet()));
+        } catch (IOException e) {
+            System.out.println("error processing dead node");
+            e.printStackTrace();
+        }
+        System.out.println("Lost connection:"+disconnectedConnectionKey);
     }
 
     public void display(String str) {

@@ -66,8 +66,33 @@ public class ChunkNode implements Node {
                     e.printStackTrace();
                 }
                 break;
-
+            case Protocol.STORE_ERASURE:
+                processStoreErasure((StoreChunk) event);
+                break;
+            case Protocol.ERASURE_REQ:
+                try {
+                    processErasureFragmentRequest((ChunkIdentifier) event);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
         }
+    }
+
+    private void processErasureFragmentRequest(ChunkIdentifier event) throws IOException {
+        NodeConnection client = connectionsMap.get(event.getHeader().getSenderKey());
+
+        // get erasure data
+        Path path = Paths.get(BASE_SAVE_DIR+event.getErasureStorageName());
+        byte[] bytesToSend = Files.readAllBytes(path);
+
+        System.out.println("sent erasure fragment:" + event.getFilename() + " : " + event.getSequence() + " : " + event.getFragment());
+        client.sendEvent(EventFactory.buildStoreErasureFragment(client, event.getFilename(), event.getSequence(), bytesToSend, event.getFragment()));
+    }
+
+    private void processStoreErasure(StoreChunk event) {
+        ChunkStorage cs = new ChunkStorage(event.getFileName(), "0.0", event.getChunkSequenceID(), event.getErasureFragmentID(), 0L, "");
+        storedChunksMap.put(cs.getErasureStorageName(), cs);
+        storeChunk(cs.getErasureStorageName(), event.getBytesToStore());
     }
 
     /*
@@ -103,7 +128,7 @@ public class ChunkNode implements Node {
     private void processStoreChunk(StoreChunk event) {
         System.out.println();
         System.out.println("** Storing new chunk #" + event.getChunkSequenceID() + " for file: " + event.getFileName());
-        ChunkStorage record = new ChunkStorage(event.getFileName(), event.getVersion(), event.getChunkSequenceID(), new Date().getTime(), Util.getCheckSumSHA1(event.getBytesToStore()));
+        ChunkStorage record = new ChunkStorage(event.getFileName(), event.getVersion(), event.getChunkSequenceID(), 0, new Date().getTime(), Util.getCheckSumSHA1(event.getBytesToStore()));
         System.out.println("Checksum:" + record.getChecksum());
         storeChunk(record.getChunkStorageName(), event.getBytesToStore());
         storeNewRecord(record);

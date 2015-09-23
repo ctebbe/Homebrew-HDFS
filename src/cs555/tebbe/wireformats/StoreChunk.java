@@ -15,8 +15,20 @@ public class StoreChunk implements Event {
     private String name;
     private String version;
     private int chunk_sequence;
+    private int erasure_fragment;
     private byte[] bytesToStore;
     private ChunkReplicaInformation replicaInformation;
+
+    public StoreChunk(int protocol, NodeConnection connection, String name, String version, int chunk_sequence,
+                      byte[] bytes, int erasure_fragment, ChunkReplicaInformation replicaInformation) {
+        header = new Header(protocol, connection);
+        this.name = name;
+        this.version = version;
+        this.chunk_sequence = chunk_sequence;
+        this.bytesToStore = bytes;
+        this.erasure_fragment = erasure_fragment;
+        this.replicaInformation = replicaInformation;
+    }
 
     public StoreChunk(int protocol, NodeConnection connection, String name, String version, int chunk_sequence,
                       byte[] bytes, ChunkReplicaInformation replicaInformation) {
@@ -25,6 +37,7 @@ public class StoreChunk implements Event {
         this.version = version;
         this.chunk_sequence = chunk_sequence;
         this.bytesToStore = bytes;
+        erasure_fragment = 0;
         this.replicaInformation = replicaInformation;
     }
 
@@ -51,6 +64,9 @@ public class StoreChunk implements Event {
         // bytes to store
         bytesToStore = new byte[din.readInt()];
         din.readFully(bytesToStore);
+
+        // erasure fragment
+        this.erasure_fragment = din.readInt();
 
         // replica routing info
         replicaInformation = ChunkReplicaInformation.parseChunkReplicaInformation(din);
@@ -90,6 +106,9 @@ public class StoreChunk implements Event {
         dout.writeInt(bytesToStore.length);
         dout.write(bytesToStore);
 
+        // erasure fragment
+        dout.writeInt(erasure_fragment);
+
         // replica routing info
         dout.write(replicaInformation.getBytes());
 
@@ -125,6 +144,10 @@ public class StoreChunk implements Event {
 
     public int getChunkSequenceID() {
         return chunk_sequence;
+    }
+
+    public int getErasureFragmentID() {
+        return erasure_fragment;
     }
 
     public ChunkReplicaInformation getChunkReplicaInformation() {

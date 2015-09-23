@@ -6,6 +6,8 @@ import cs555.tebbe.wireformats.*;
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ControllerNode implements Node {
@@ -65,9 +67,21 @@ public class ControllerNode implements Node {
                     e.printStackTrace();
                 }
                 break;
+            case Protocol.STORE_ERASURE_REQ:
+                try {
+                    processStoreEraseFragmentsRequest((StoreFileRequest) event);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                break;
             default:
-                display("unknown event type.");
+                display("unknown event type:"+event.getType());
         }
+    }
+
+    private void processStoreEraseFragmentsRequest(StoreFileRequest event) throws IOException {
+        NodeConnection chunkNode = bufferMap.get(event.getSenderKey());
+        chunkNode.sendEvent(EventFactory.buildLiveNodeEvent(chunkNode, event.getFileName(), chunkNodeMap.keySet().toArray(new String[]{})));
     }
 
     private void processCorruptCheckRequest(ChunkIdentifier event) throws IOException {
@@ -108,11 +122,13 @@ public class ControllerNode implements Node {
 
     @Override
     public synchronized void lostConnection(String disconnectedConnectionKey) {
-        try {
-            chunkTracker.processDeadNode(disconnectedConnectionKey, new ArrayList<>(chunkNodeMap.keySet()));
-        } catch (IOException e) {
-            System.out.println("error processing dead node");
-            e.printStackTrace();
+        if(chunkNodeMap.containsKey(disconnectedConnectionKey)) {
+            try {
+                chunkTracker.processDeadNode(disconnectedConnectionKey, new ArrayList<>(chunkNodeMap.keySet()));
+            } catch (IOException e) {
+                System.out.println("error processing dead node");
+                e.printStackTrace();
+            }
         }
         System.out.println("Lost connection:"+disconnectedConnectionKey);
     }

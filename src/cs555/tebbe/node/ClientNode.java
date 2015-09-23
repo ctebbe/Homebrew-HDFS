@@ -3,11 +3,12 @@ package cs555.tebbe.node;
 import cs555.tebbe.transport.ConnectionFactory;
 import cs555.tebbe.transport.NodeConnection;
 import cs555.tebbe.util.ChunkTracker;
+import cs555.tebbe.util.ErasureEncoder;
+import cs555.tebbe.util.ErasureRecord;
 import cs555.tebbe.util.Util;
 import cs555.tebbe.wireformats.*;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -21,6 +22,7 @@ public class ClientNode implements Node {
     private byte[] cachedBytes;                                             // bytes stored while performing routing logic
     private HashMap<String, String> checksumFileMap = new HashMap<>();
     private HashMap<String, NodeConnection> chunkNodeLiveConnectionsMap = new HashMap<>();
+    private HashMap<String, List<ErasureRecord>> erasureMap = new HashMap<>();
 
     public ClientNode(String chost, int cport) {
         try {
@@ -58,7 +60,7 @@ public class ClientNode implements Node {
                 String fname = keyboard.nextLine();
                 System.out.println("Text?");
                 optGenerateAndStoreTextFile(fname, keyboard.nextLine());
-            } else if(input.contains("3")) {
+            } else if(input.contains("4")) {
                 List<String> fileList = new ArrayList<>(checksumFileMap.keySet());
                 int i=0;
                 for(String file : fileList)
@@ -66,8 +68,38 @@ public class ClientNode implements Node {
                 String tmp = fileList.get(Integer.parseInt(keyboard.nextLine()));
                 System.out.println("Selected file to read: " + tmp);
                 optReadFile(tmp);
+            } else if(input.contains("5")) {
+                List<String> fileList = new ArrayList<>(erasureMap.keySet());
+                int i=0;
+                for(String file : fileList)
+                    System.out.println(i++ + ". " + file);
+                String tmp = fileList.get(Integer.parseInt(keyboard.nextLine()));
+                System.out.println("Selected file to read: " + tmp);
+                optReadFileErasure(tmp);
+            } else if(input.contains("3")) {
+                System.out.println("File path?");
+                String fname = keyboard.nextLine();
+                File file = new File(fname);
+                //Path path = file.toPath();
+                sendStoreFileRequest(file);
             }
             input = keyboard.nextLine();
+        }
+    }
+
+    private byte[][][] cachedShards;
+    private void optReadFileErasure(String filename) throws IOException {
+        // buffer space to accumulate shards
+        int numChunks = erasureMap.get(filename).get(0).numChunks;
+        cachedShards = new byte[numChunks][][];
+        for(int i=0; i < numChunks; i++) {
+            cachedShards[i] = new byte[ErasureEncoder.TOTAL_SHARDS][];
+        }
+
+        for(ErasureRecord record : erasureMap.get(filename)) {
+            NodeConnection connection = getChunkNodeConnection(record.host);
+            if(connection == null) continue;
+            connection.sendEvent(EventFactory.buildRequestErasureFragment(connection, record.filename, record.chunk, record.fragment));
         }
     }
 
@@ -99,11 +131,22 @@ public class ClientNode implements Node {
         _Controller.sendEvent(EventFactory.buildStoreFileRequestEvent(_Controller, fname, cachedBytes.length));
     }
 
+    private void sendStoreFileRequest(File file) throws IOException {
+        FileInputStream fis = new FileInputStream(file);
+        cachedBytes = new byte[(int)file.length()];
+        fis.read(cachedBytes);
+        fis.close();
+        sendStoreFileRequest(file.getName());
+    }
+
+
     private void printMenu() {
         System.out.println("\t ********************");
         System.out.println("1. Generate & store random byte file");
         System.out.println("2. Generate & store text file");
-        System.out.println("3. Read file");
+        System.out.println("3. Import & store file");
+        System.out.println("4. Read file via chunking");
+        System.out.println("5. Read file via erasure codes");
         System.out.println("\t ********************");
     }
 
@@ -136,7 +179,45 @@ public class ClientNode implements Node {
                     System.out.println("error correcting corrupted chunk");
                     e.printStackTrace();
                 }
+                break;
+            case Protocol.LIVE_NODES:
+                try {
+                    storeErasureEncoded((StoreChunk) event);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                break;
+            case Protocol.STORE_ERASURE:
+                try {
+                    processErasureCollection((StoreChunk) event);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                break;
         }
+    }
+
+    private void processErasureCollection(StoreChunk event) throws IOException {
+        if(cachedShards==null) return; // file already decoded
+        cachedShards[event.getChunkSequenceID()][event.getErasureFragmentID()] = event.getBytesToStore();
+        for(byte[][] chunk : cachedShards) {
+            int accumulatedFragments = 0;
+            for(byte[] fragment : chunk)
+                if(fragment != null)
+                    accumulatedFragments++;
+            if(accumulatedFragments < ErasureEncoder.DATA_SHARDS)
+                return;
+        }
+
+        // ready to reassemble file
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DataOutputStream dout = new DataOutputStream(new BufferedOutputStream(baos));
+        for(byte[][] encodedChunk : cachedShards) {
+            dout.write(ErasureEncoder.decodeReedSolomon(encodedChunk));
+        }
+        dout.flush();
+        cachedShards = null;
+        System.out.println("decoded erasure file result:"+Util.getCheckSumSHA1(baos.toByteArray()));
     }
 
     private void processCorruptChunkDetected(ChunkIdentifier event) throws IOException {
@@ -180,11 +261,40 @@ public class ClientNode implements Node {
         }
     }
 
+    private final List<byte[]> cachedChunks = new ArrayList<>();
     private void processChunkRoute(ChunkRoute event) throws IOException {
+        cachedChunks.clear();
         int chunkSequence = 0;
         for(ChunkReplicaInformation info : event.getChunksInformation()) { // process each chunk, send to first replica
+            byte[] chunk = parseChunkBytes(chunkSequence);
             getChunkNodeConnection(info.getReplicaChunkNodes()[0]).sendEvent(
-                    EventFactory.buildStoreChunkEvent(getChunkNodeConnection(info.getReplicaChunkNodes()[0]), event.getFileName(), "0.1", chunkSequence, parseChunkBytes(chunkSequence++), info));
+                    EventFactory.buildStoreChunkEvent(getChunkNodeConnection(info.getReplicaChunkNodes()[0]), event.getFileName(), "0.1", chunkSequence, chunk, info));
+            cachedChunks.add(chunk);
+            chunkSequence++;
+        }
+        _Controller.sendEvent(EventFactory.buildStoreErasureFragmentRequest(_Controller, event.getFileName()));
+    }
+
+    private void storeErasureEncoded(StoreChunk event) throws IOException {
+        Random random = new Random();
+        String[] nodes = event.getChunkReplicaInformation().getReplicaChunkNodes();
+
+        // encode
+        byte[][][] encodedChunks = new byte[cachedChunks.size()][][];
+        for(int i=0; i < cachedChunks.size(); i++) {
+            encodedChunks[i] = ErasureEncoder.encodeReedSolomon(cachedChunks.get(i));
+        }
+
+        // distribute chunk shards
+        erasureMap.put(event.getFileName(), new ArrayList<ErasureRecord>());
+        List recordList = erasureMap.get(event.getFileName());
+        for(int chunk=0; chunk < encodedChunks.length; chunk++) {           // chunks
+            for(int fragment=0; fragment < encodedChunks[chunk].length; fragment++) {    // shards
+                NodeConnection connection = getChunkNodeConnection(Util.removePort(nodes[random.nextInt(nodes.length)]));
+                //System.out.println("sending chunk " + chunk + " fragment " + fragment + " to " + connection.getRemoteKey());
+                recordList.add(new ErasureRecord(Util.removePort(connection.getRemoteKey()), event.getFileName(), chunk, fragment, encodedChunks.length));
+                connection.sendEvent(EventFactory.buildStoreErasureFragment(connection, event.getFileName(), chunk, encodedChunks[chunk][fragment], fragment));
+            }
         }
     }
 

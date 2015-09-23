@@ -30,7 +30,7 @@ public class NodeConnection {
         try { 
             this.sender.sendEvent(event);
         } catch(IOException ioe) { 
-            System.out.println("Error sending event:"+ioe.toString()); 
+            //System.out.println("Error sending event:"+ioe.toString());
         }
     }
 

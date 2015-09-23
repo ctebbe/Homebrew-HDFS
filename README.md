@@ -1,0 +1,1 @@
+To run from CSB, run shell script run.sh from its directory.

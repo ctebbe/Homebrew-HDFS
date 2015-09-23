@@ -24,9 +24,16 @@ public class Protocol {
     // error detection
     public static final int CORRUPT_CHUNK_REQ       = 107;
 
+    // erasure
+    public static final int STORE_ERASURE           = 121;
+    public static final int ERASURE_REQ             = 122;
+    public static final int STORE_ERASURE_REQ       = 123;
+
     // heartbeats
     public static final int MAJOR_HEARTBEAT         = 108;
     public static final int MINOR_HEARTBEAT         = 109;
+
+    public static final int LIVE_NODES          = 131;
 
     // status codes
     public static final byte NOSTATUS               = (byte) 0x00;

@@ -12,11 +12,20 @@ public class ChunkIdentifier implements Event {
     private Header header;
     private String filename;
     private int sequence;
+    private int fragment;
 
     public ChunkIdentifier(int protocol, NodeConnection connection, String name, int sequence) {
         header = new Header(protocol, connection);
         this.filename = name;
         this.sequence = sequence;
+        this.fragment = 999;
+    }
+
+    public ChunkIdentifier(int protocol, NodeConnection connection, String name, int sequence, int fragment) {
+        header = new Header(protocol, connection);
+        this.filename = name;
+        this.sequence = sequence;
+        this.fragment = fragment;
     }
 
     public ChunkIdentifier(byte[] marshalledBytes) throws IOException {
@@ -33,6 +42,9 @@ public class ChunkIdentifier implements Event {
 
         // chunk sequence number
         this.sequence = din.readInt();
+
+        // fragment
+        this.fragment = din.readInt();
 
         bais.close();
         din.close();
@@ -55,6 +67,9 @@ public class ChunkIdentifier implements Event {
         // chunk sequence number
         dout.writeInt(sequence);
 
+        // fragment
+        dout.writeInt(fragment);
+
         // clean up
         dout.flush();
         marshalledBytes = baos.toByteArray();
@@ -75,8 +90,16 @@ public class ChunkIdentifier implements Event {
         return sequence;
     }
 
+    public int getFragment() {
+        return fragment;
+    }
+
     public String getChunkStorageName() {
         return filename + "_chunk" + sequence;
+    }
+
+    public String getErasureStorageName() {
+        return getChunkStorageName() + "_erasure" + fragment;
     }
 
     @Override public int getType() {

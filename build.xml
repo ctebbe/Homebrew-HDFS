@@ -21,7 +21,11 @@
     </target>
 
     <target name="compile" depends="init" >
-        <javac destdir="${build}/classes" srcdir="${src}" includeantruntime="false"/>
+        <javac destdir="${build}/classes" srcdir="${src}" includeantruntime="false">
+            <classpath>
+                <pathelement path="lib/reed-solomon-erasure-coding.jar"/>
+            </classpath>
+        </javac>
     </target>
 
     <target name="jar" depends="compile">
@@ -56,7 +60,7 @@
 
     <target name="client" depends="jar">
         <java classname="${package}.${client.node}" fork="true">
-            <classpath path="${dist}\${ant.project.name}.jar" />
+            <classpath path="${dist}\${ant.project.name}.jar:lib/reed-solomon-erasure-coding.jar" />
             <arg value="${arg0}"/>
             <arg value="${arg1}"/>
         </java>

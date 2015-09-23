@@ -36,7 +36,7 @@ public class ChunkTracker {
 
         ChunkReplicaInformation[] chunkReplicas = new ChunkReplicaInformation[numChunksToAllocate];
         for(int i=0; i < chunkReplicas.length; i++)
-            chunkReplicas[i] = generateUniqueChunkRoute();
+            chunkReplicas[i] = generateUniqueChunkRoute(Protocol.NUM_REPLICAS_PER_CHUNK);
         fileTrackerMap.put(reqEvent.getFileName(), chunkReplicas);
 
         System.out.println();
@@ -67,7 +67,7 @@ public class ChunkTracker {
     /*
         creates a chunk route with unique machines to disperse replicas
      */
-    private ChunkReplicaInformation generateUniqueChunkRoute() {
+    private ChunkReplicaInformation generateUniqueChunkRoute(int numNodesNeeded) {
         List<LiveChunkNodeData> nodeInfos = new ArrayList<>(chunkNodeMap.values()); // a snapshot of the current connections
         Collections.shuffle(nodeInfos); // randomly shuffle nodes
         /*
@@ -91,7 +91,7 @@ public class ChunkTracker {
         */
 
         List<String> replicaList = new ArrayList<>();
-        for(int i=0; i < Protocol.NUM_REPLICAS_PER_CHUNK; i++) {
+        for(int i=0; i < numNodesNeeded; i++) {
             String nodeKey = nodeInfos.get(i).getNodeKey();
             replicaList.add(Util.removePort(nodeKey));
         }
@@ -99,13 +99,16 @@ public class ChunkTracker {
     }
 
     public void processDeadNode(String disconnectedNodeKey, List<String> keys) throws IOException {
-        System.out.println("disconnected: " + disconnectedNodeKey);
-        System.out.println("key?: " + chunkNodeMap.containsKey(disconnectedNodeKey));
         LiveChunkNodeData removedNodeData = chunkNodeMap.remove(disconnectedNodeKey);
         for(ChunkStorage record : removedNodeData.getStorageRecords()) {
-            String newReplicaHostname = generateUniqueChunkRoute().getReplicaChunkNodes()[0]; // new desired replica node
-            System.out.println("new replica for chunk "+ record.getSequence() +": " + newReplicaHostname);
             ChunkReplicaInformation info = fileTrackerMap.get(record.getFileName())[record.getSequence()];
+            List<String> currReplicas = Arrays.asList(info.getReplicaChunkNodes());
+            String newReplicaHostname = "";
+            while(true) {
+                newReplicaHostname = generateUniqueChunkRoute(Protocol.NUM_REPLICAS_PER_CHUNK).getReplicaChunkNodes()[0]; // new desired replica node
+                if(!currReplicas.contains(newReplicaHostname)) break;
+            }
+            System.out.println(record.getFileName() + ": new replica for chunk "+ record.getSequence() +": " + newReplicaHostname);
             if(info.replaceReplicaRecord(Util.removePort(disconnectedNodeKey), newReplicaHostname)) {
                 for(String key : keys)
                     if(key.contains(newReplicaHostname)) {

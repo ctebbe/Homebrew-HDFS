@@ -13,6 +13,10 @@ public class EventFactory {
         return factory;
     }
 
+    public static Event buildLiveNodeEvent(NodeConnection connection, String name, String[] machines) throws IOException {
+        return new StoreChunk(Protocol.LIVE_NODES, connection, name, "", 0, new byte[]{}, 0, new ChunkReplicaInformation(machines));
+    }
+
     // REGISTER
     public static Event buildRegisterEvent(NodeConnection connection) throws IOException {
         return new Register(Protocol.REGISTER, connection);
@@ -40,6 +44,19 @@ public class EventFactory {
     // for chaining store chunk events
     public static Event buildStoreChunkEvent(NodeConnection connection, StoreChunk storeChunk) throws IOException {
         return new StoreChunk(Protocol.STORE_CHUNK, connection, storeChunk.getFileName(), storeChunk.getVersion(), storeChunk.getChunkSequenceID(), storeChunk.getBytesToStore(), storeChunk.getChunkReplicaInformation());
+    }
+
+    // erasure
+    public static Event buildStoreErasureFragmentRequest(NodeConnection connection, String name) {
+        return new StoreFileRequest(Protocol.STORE_ERASURE_REQ, connection, name, 0);
+    }
+
+    public static Event buildStoreErasureFragment(NodeConnection connection, String name, int sequence, byte[] bytes, int fragment) {
+        return new StoreChunk(Protocol.STORE_ERASURE, connection, name, "0.0", sequence, bytes, fragment, new ChunkReplicaInformation(new String[]{}));
+    }
+
+    public static Event buildRequestErasureFragment(NodeConnection conntion, String name, int sequence, int fragment) {
+        return new ChunkIdentifier(Protocol.ERASURE_REQ, conntion, name, sequence, fragment);
     }
 
     public static Event buildStoreChunkEvent(NodeConnection connection, ChunkStorage storage, byte[] bytesToStore, ChunkReplicaInformation info) throws IOException {
@@ -102,6 +119,14 @@ public class EventFactory {
                     return new ChunkRoute(marshalledBytes);
                 case Protocol.CORRUPT_CHUNK_REQ:
                     return new ChunkIdentifier(marshalledBytes);
+                case Protocol.STORE_ERASURE:
+                    return new StoreChunk(marshalledBytes);
+                case Protocol.ERASURE_REQ:
+                    return new ChunkIdentifier(marshalledBytes);
+                case Protocol.STORE_ERASURE_REQ:
+                    return new StoreFileRequest(marshalledBytes);
+                case Protocol.LIVE_NODES:
+                    return new StoreChunk(marshalledBytes);
                 default: return null;
             }
         } catch(IOException ioe) { 

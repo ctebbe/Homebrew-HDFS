@@ -42,7 +42,7 @@ public class TCPReceiverThread extends Thread {
             try {
                 node.onEvent(EventFactory.getInstance().buildEvent(receiveData()));
             } catch(SocketException se) {
-                System.out.println("Socket error in receiver thread:"+se.getMessage());
+                //System.out.println("Socket error in receiver thread:"+se.getMessage());
                 break;
             } catch(IOException ioe) {
                 node.lostConnection(key);

@@ -47,7 +47,7 @@ public class Heartbeat implements Event {
             // time stamp
             Long timestamp = din.readLong();
 
-            storageRecords[i] = new ChunkStorage(fileName, version, chunkSequence, timestamp, null);
+            storageRecords[i] = new ChunkStorage(fileName, version, chunkSequence, 0, timestamp, null);
         }
 
         bais.close();
